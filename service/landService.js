@@ -240,7 +240,7 @@ exports.plant = async function (request,reply) {
     /**  生成收益  ****/
     var experience = plant.expirence;
     var harvestGold = Math.round((Math.random() * (plant.maxGold - plant.minGold) + plant.minGold)) ;
-    var plt_essence = Math.round((Math.random() * (plant.minEssence - plant.maxEssence) + plant.minGold));
+    var plt_essence = Math.round((Math.random() * (plant.maxEssence - plant.minEssence) + plant.minGold));
     var hb = 0;
     var hbHarvestRecord = await dao.findOne(request,'hbFstRecord',{user_id:user._id + "",plt_id:plant._id + ""});
     if (hbHarvestRecord) {
@@ -254,10 +254,12 @@ exports.plant = async function (request,reply) {
 
     var harvest = {};
     harvest.gold = harvestGold;
+    harvest.priGold = harvestGold;
     harvest.plt_sessence = plt_essence;
+    harvest.priEss = plt_essence;
     harvest.experience = experience;
     harvest.hb = hb;
-
+    harvest.priHb = hb;
      // 计算额外掉落
     var dropGruops = await dao.find(request,'dropGroups',{id:plant.dropId});
     console.log('1111111',dropGruops);
@@ -316,6 +318,126 @@ exports.harvestPreview = async function (request,reply) {
             "resource":{harvest:harvest}
     });
 }
+
+exports.plt_steal = async function(request,reply){ 
+    var user = request.auth.credentials;
+    var land = await dao.findOne(request,'land',{_id:request.params.id});
+    if (!land) {
+        reply({
+                "message":"无此土地！",
+                "statusCode":102,
+                "status":false
+        });
+
+        return ;
+    }
+    var stealFromUser = await dao.findById(request,'user',land.user_id);
+    if (stealFromUser.username == user.username) {
+        reply({
+                "message":"自己的土地无法偷取！",
+                "statusCode":102,
+                "status":false
+        });
+        
+        return ;
+    }
+    await landService.updateUserLandGrows(request,stealFromUser);
+    if (land.status != 3){
+        reply({
+                "message":"植物还未成熟！",
+                "statusCode":102,
+                "status":false
+        });
+       
+        return ;
+    }
+    var stealRecords = await dao.find(request,'stealRecord',{land_id:land._id + "",grow_id:land.grow_id,username:user.username});
+    if (stealRecords.length > 0) {
+        reply({
+                "message":"该次成熟已被偷过。",
+                "statusCode":102,
+                "status":false
+        });
+
+        return ;
+    }
+
+    // 走偷取逻辑
+    var harvest = await dao.findOne(request,'harvest',{grow_id:land.grow_id + ""});
+    var plant = await dao.findById(request,'plant',land.plt_id + "");
+    
+    var experience = 0;
+    var stdExeSuccessRadm = Math.random();
+    if (stdExeSuccessRadm <= plant.stdExeRate) {
+        // 本次收获最大偷取量
+        var canStdExe = plant.expirence * plant.stdExeMaxPp;
+        // 本次收获保底量
+        var minHarvExe = plant.experience - canStdExe;
+        // 如果还有偷取的余地
+        if (harvest.experience > minHarvExe) {
+            // 偷取的数量按剩余可偷取量计算
+            experience = Math.round((harvest.experience - minHarvExe) * Math.random());
+        }
+    }
+
+    var hb = 0;
+    var hbStdSuccessRadm = Math.random();
+    if (hbStdSuccessRadm <= plant.stdHbRate) {
+        var canStdHb = harvest.priHb * plant.stdHbMaxPp;
+        var minHarvHb = harvest.priHb - canStdHb;
+        if (harvest.hb > minHarvHb) {
+            hb = Math.round((harvest.hb - minHarvHb) * Math.random() * 100) / 100;
+        }
+    }
+    
+    var ess = 0;
+    var essStdSuccessRadm = Math.random();
+    if (essStdSuccessRadm <= plant.stdEssRate) {
+        var canStdEss = harvest.priEss * plant.stdEssMaxPp;
+        var minHarvEss = harvest.priEss - canStdEss;
+        if (harvest.plt_sessence > minHarvEss) {
+            ess = Math.round((harvest.plt_sessence - minHarvEss) * Math.random());
+        }
+    }
+
+    var gold = 0;
+    var canStdGold = harvest.priGold * plant.stdGoldMaxPp;
+    var minHarvGold = harvest.gold - canStdGold;
+    if (harvest.gold > minHarvGold) {
+        gold = Math.round((harvest.gold - minHarvGold) * Math.random());
+    }
+    // 更新用户数据
+    await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:gold,experience:experience,plt_sessence:ess,hb:hb});
+    var stealRecord = {};
+    stealRecord.username = user.username;
+    stealRecord.user_id = user._id + '';
+    stealRecord.experience = experience;
+    stealRecord.plt_ess = ess;
+    stealRecord.gold = gold;
+    stealRecord.hb = hb;
+    stealRecord.createTime = new Date().getTime();
+    stealRecord.stealFrom = stealFromUser.username;
+    stealRecord.fromId = stealFromUser._id  + "";
+    stealRecord.area = 1; // 1 农场 2 牧场
+    stealRecord.land_id = land._id + "";
+    stealRecord.grow_id = land.grow_id;
+    stealRecord.harvest_id = harvest._id + "";
+    await dao.save(request,'stealRecrod',stealRecord);
+    // 更新收益
+    await dao.updateIncOne(request,'harvest',{_id:harvest._id + ""},{gold:-gold,experience:-experience,plt_sessence:-ess,hb:-hb});
+    var data = {};
+    data.gold = gold;
+    data.ess = ess;
+    data.experience = experience;
+    data.hb = hb;
+    reply({
+                "message":"偷取成功，获得金币"+gold+'个，植物精华'+ ess + "个，经验"+experience + ",红包" + hb +"元。",
+                "statusCode":101,
+                "status":true,
+                "resource":data
+    });
+}
+
 exports.harvest = async function (request,reply) { 
     var user = request.auth.credentials;
     var land = await dao.findById(request,'land',request.params.id);

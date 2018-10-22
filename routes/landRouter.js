@@ -194,5 +194,29 @@ module.exports = [
                 }).unknown()
             }
         }
+    },
+        // 偷红包
+    {
+        method:'POST',
+        path:'/plant/plt/steal/{id}',
+        handler:landService.plt_steal,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '偷取',
+            notes: '偷取Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                     id:Joi.string().required().description("土地ID")
+                }
+            }
+        }
     }
 ]

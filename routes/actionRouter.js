@@ -134,11 +134,11 @@ module.exports = [
             }
         }
     },
-        // 偷取
+        // 偷红包
     {
         method:'POST',
-        path:'/areca/steal/{areca_id}',
-        handler:actionService.steal,
+        path:'/action/plt/steal/{id}',
+        handler:actionService.plt_steal,
         config:{
             //拦截器
             auth: {
@@ -153,7 +153,7 @@ module.exports = [
                     'authorization': Joi.string().required().description('需要加token请求头')
                 }).unknown(),
                 params:{
-                     areca_id:Joi.string().required().description("槟榔树Id")
+                     id:Joi.string().required().description("土地ID")
                 }
 
             }

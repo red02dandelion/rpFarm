@@ -405,6 +405,7 @@ exports.serverUpto = async function(request,reply){
     }, async function (err, data, res) {
     if (err) {
         console.log('用户信息同步失败');
+        console.log('err',err);
         reply({"message":"用户信息同步失败","statusCode":102,"status":false});
         // throw err; // you need to handle error
         return;
@@ -505,7 +506,64 @@ exports.serverUpto = async function(request,reply){
             var payload = uptoUser;
             await dao.updateOne(request,'user',{_id:user._id},payload);     
         }
+        console.log('user',user);
+        var req = require('urllib-sync').request;
+        var path = 'http://t.api.ws.cn/rest/jmmall.farm.friendlist';
+        var result = req(path,{
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json"
+            },
+            data: {
+                "h": {
+                     "t": user.token //当前登录用户token
+                },
+                "d": {
+                    "a": 1,
+                    "page": 1, //页码，从1开始
+                    "pagesize": 1000000 //分页大小
+                }
+            }
 
+            });
+        var data = JSON.parse(result.data.toString());
+        // console.log(data.result_list.length);
+        console.log('data',data);
+        if (data.c == 200 && data.d.l.length > 0) {
+            for (var index in data.d.l) {
+                var friendUser = data.d.l[index];
+                console.log('index ',index)
+                // console.log('friendUser',friendUser);
+                var friend = await dao.findOne(request,'user',{username:friendUser.userid});
+                if (friend) {
+                    console.log('addFriend',friend);
+                    var hasFriend = await dao.findOne(request,'friend',{username:user.username,friend:friend.userid});
+                    if (!hasFriend) {
+                        var selfFriendAdd = {};
+                        selfFriendAdd.username = user.username;
+                        selfFriendAdd.createTime = new Date().getTime();
+                        selfFriendAdd.friend = friend.username;
+                        selfFriendAdd.user_id = user._id + "";
+                        selfFriendAdd.friend_id = friend._id + "";
+                        selfFriendAdd.gameFlag = 0;
+                        await dao.save(request,'friend',selfFriendAdd);  
+                    }
+                    var hasMe = await dao.findOne(request,'friend',{username:friend.username,friend:user.username});
+                    if (hasMe == null) {
+                        var parentFriendAdd = {};
+                        parentFriendAdd.friend = user.username;
+                        parentFriendAdd.createTime = new Date().getTime();
+                        parentFriendAdd.username = friend.username;
+                        parentFriendAdd.friend_id = user._id + "";
+                        parentFriendAdd.user_id = friend._id + "";
+                        parentFriendAdd.gameFlag = 0;
+                        await dao.save(request,'friend',parentFriendAdd);
+                    }
+                }
+                
+            }
+        }
+        console.log('success');
         reply({"message":"用户信息同步成功","statusCode":101,"status":true});
     });
 }
@@ -1048,28 +1106,32 @@ exports.delFriend = async function(request,reply) {
 // 好友列表
 exports.getUserFriend = async function(request,reply){
     var user = request.auth.credentials; 
-    user = await dao.findOne(request,'user',{username:user.username});
-    var friends = await dao.find(request,'friend',{user_id:user._id + ""});
-    var frindList = {};
+    // user = await dao.findOne(request,'user',{username:user.username});
+    var friends = await dao.find(request,'friend',{username:user.username + ""},{},{},request.params.size,request.params.page);
+    var displayFriends = [];
     if (friends.length > 0) {
         for (var index in friends) {
-            var friend = friends[index];
-            var disPlayFriend = await dao.findOne(request,'user',{username:friend.friend});
-            // console.log('11111',disPlayFriend);
-            // if (disPlayFriend) {
-            //     friend.nickname = disPlayFriend.nickname;
-            //     friend.name = disPlayFriend.name;
-            //     friend.leadership = disPlayFriend.leadership;
-            //     friend.grade_class = disPlayFriend.grade_class;
-            //     friend.grade = disPlayFriend.grade;
-            // }
-            // console.log(friend);
-            // console.log(disPlayFriend);
-
+            var curFriend = friends[index];
+            var friend = await dao.find(request,'user',{username:curFriend.username});
+            if (friend) {
+                // await userService.updateLandLockstatus(request,friend);
+                friend.nextHavest = 0;
+                friend.nextHavestTime = -1;
+                friend.land_id = "";
+                var lands = await dao.find(request,'land',{user_id:friend._id + "",$or:[{status:2},{status:3}]},{},{harvestTime:1});
+                if (lands.length > 0) {
+                    var findStealRecord = await dao.findOne(request,'stealRecrod',{username:user.username,grow_id:land.grow_id});
+                    if (!findStealRecord) {
+                        friend.nextHavestTime = lands[0].harvestTime;
+                        friend.nextHavest = 1; 
+                        friend.land_id = lands[0]._id + "";   
+                    }               
+                }
+                displayFriends.push(friend);
+            }
         }
     }
-    console.log('frineds',friends);
-    reply({"message":"获取用户好友列表成功","statusCode":107,"status":true,"resource":friends});
+    reply({"message":"获取用户好友列表成功","statusCode":107,"status":true,"resource":displayFriends});
 }
 exports.friends1 = async function(request,reply) {
     var user = request.auth.credentials;

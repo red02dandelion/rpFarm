@@ -1,7 +1,8 @@
 const dao = require("../dao/dao");
 var CryptoJS = require("crypto-js");
 const grouthService = require("../service/grouthService");
-
+var userService = require("../service/userService");
+var landService = require("../service/landService");
 exports.worm = async function(request,reply){ 
     var user = request.auth.credentials;
     if (request.params.id) {
@@ -617,42 +618,42 @@ exports.root = async function(request,reply){
 
 }
 
-exports.steal = async function(request,reply){ 
+exports.plt_steal = async function(request,reply){ 
     var user = request.auth.credentials;
-    
-    var areca = await dao.findOne(request,'areca',{_id:request.params.areca_id});
-    if (!areca) {
+    var land = await dao.findOne(request,'land',{_id:request.params.id});
+    if (!land) {
         reply({
-                "message":"无此槟榔树",
+                "message":"无此土地！",
                 "statusCode":102,
                 "status":false
         });
 
         return ;
     }
-    var stealFromUser = await dao.findById(request,'user',areca.user_id);
+    var stealFromUser = await dao.findById(request,'user',land.user_id);
     if (stealFromUser.username == user.username) {
-         reply({
-                "message":"自己的槟榔树无法偷取",
+        reply({
+                "message":"自己的土地无法偷取！",
                 "statusCode":102,
                 "status":false
         });
-
+        
         return ;
     }
-      // 宠物窝有植物
-    const currentTime = new Date().getTime();
-    const currentDateTime = new Date(currentTime);
-    const dayString = formatDateDay(currentDateTime);
-
-    console.log("areca.grouth_id ",areca.grouth_id);
-     console.log("areca.grouth_id ",user.username);
-    var stealRecords = await dao.find(request,'stealRecord',{grouth_id:areca.grouth_id,stealer:user.username});
-    console.log("steal record ",stealRecords);
-    // var stealRecords = await dao.find(request,'stealRecord',{land_id:land._id,dayString:dayString,success:true});
+    await landService.updateUserLandGrows(request,stealFromUser);
+    if (land.status != 3){
+        reply({
+                "message":"植物还未成熟！",
+                "statusCode":102,
+                "status":false
+        });
+       
+        return ;
+    }
+    var stealRecords = await dao.find(request,'stealRecord',{land_id:land._id + "",grow_id:land.grow_id,username:user.username});
     if (stealRecords.length > 0) {
         reply({
-                "message":"该槟榔树已经偷过",
+                "message":"该次成熟已被偷过。",
                 "statusCode":102,
                 "status":false
         });
@@ -660,107 +661,76 @@ exports.steal = async function(request,reply){
         return ;
     }
 
-    await grouthService.updateGrowStatus(request,areca);
-    areca = await dao.findById(request,'areca',areca._id + "");
-    if (areca.status != 2) {
-        reply({
-                "message":"该槟榔树还未成熟，无法偷取！",
-                "statusCode":102,
-                "status":false
-        });
-
-        return ;
-    }
-
-    var halfHarvest = Math.floor(areca.harvest / 2);
-    if (areca.arecaCount <= halfHarvest) {
-        reply({
-                "message":"该槟榔树已经被偷取超过一半，无法再被偷取！",
-                "statusCode":102,
-                "status":false
-        });
-
-        return ;
-    }
+    // 走偷取逻辑
+    var harvest = await dao.findOne(request,'harvest',{grow_id:land.grow_id + ""});
+    var plant = await dao.findById(request,'plant',land.plt_id + "");
     
-    // var battleReward = parseInt(Math.random() * curSeason.stealMax / land.seed.seasons.length);
-    var battleReward = Math.floor(Math.random() * (areca.arecaCount - halfHarvest));
-    // battleReward = battleReward < 0.01?0.01:battleReward;
-    battleReward = battleReward <= 0?1:battleReward;
+    var experience = 0;
+    var stdExeSuccessRadm = Math.random();
+    if (stdExeSuccessRadm <= plant.stdExeRate) {
+        // 本次收获最大偷取量
+        var canStdExe = plant.expirence * plant.stdExeMaxPp;
+        // 本次收获保底量
+        var minHarvExe = plant.experience - canStdExe;
+        // 如果还有偷取的余地
+        if (harvest.experience > minHarvExe) {
+            // 偷取的数量按剩余可偷取量计算
+            experience = Math.round((harvest.experience - minHarvExe) * Math.random());
+        }
+    }
 
-    // 更新树
-   await dao.updateIncOne(request,'areca',{_id:areca._id + ""},{arecaCount:-battleReward,stealed:battleReward});
-   // 更新用户
-   await dao.updateIncOne(request,'user',{_id:user._id + ""},{areca:battleReward});
+    var hb = 0;
+    var hbStdSuccessRadm = Math.random();
+    if (hbStdSuccessRadm <= plant.stdHbRate) {
+        var canStdHb = harvest.priHb * plant.stdHbMaxPp;
+        var minHarvHb = harvest.priHb - canStdHb;
+        if (harvest.hb > minHarvHb) {
+            hb = Math.round((harvest.hb - minHarvHb) * Math.random() * 100) / 100;
+        }
+    }
 
-   // 生成偷取记录
+    var ess = 0;
+    var essStdSuccessRadm = Math.random();
+    if (essStdSuccessRadm <= plant.stdEssRate) {
+        var canStdEss = harvest.priEss * plant.stdEssMaxPp;
+        var minHarvEss = harvest.priEss - canStdEss;
+        if (harvest.plt_sessence > minHarvEss) {
+            ess = Math.round((harvest.plt_sessence - minHarvEss) * Math.random());
+        }
+    }
 
+    var gold = 0;
+    var canStdGold = harvest.priGold * plant.stdGoldMaxPp;
+    var minHarvGold = harvest.gold - canStdGold;
+    if (harvest.gold > minHarvGold) {
+        gold = Math.round((harvest.gold - minHarvGold) * Math.random());
+    }
+    // 更新用户数据
+    await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:gold,experience:experience,plt_sessence:ess,hb:hb});
     var stealRecord = {};
-    stealRecord.gold = battleReward;
-    // stealRecord.success = success;
-    stealRecord.stealer = user.username;
-    stealRecord.stealer_id = user._id;
+    stealRecord.username = user.username;
+    stealRecord.user_id = user._id + '';
+    stealRecord.experience = experience;
+    stealRecord.plt_ess = ess;
+    stealRecord.gold = gold;
+    stealRecord.hb = hb;
+    stealRecord.createTime = new Date().getTime();
     stealRecord.stealFrom = stealFromUser.username;
-    stealRecord.stealFromId = stealFromUser._id;
-    stealRecord.createTime = new Date().getTime();
-    stealRecord.areca_id = areca.id + "";
-    stealRecord.grouth_id = areca.grouth_id + "";
-    // stealRecord.seedname = land.seed.seedname;
-    stealRecord.dayString = dayString;
-    var saveRes = await dao.save(request,'stealRecord',stealRecord);
-
-    stealRecord.type = 2;
-    var saveDynamic = await dao.save(request,'dynamic',stealRecord);
-
-   reply({
-                "message":"偷取成功，获得"+battleReward+'个槟榔',
-                "statusCode":101,
-                "status":true,
-                "resource":{areca:battleReward}
-    });
-    return;
-   
-   
-    var message;
-    // 偷取成功
-    if (success == true) {
-        // 更新小偷金钱
-        var updateUserRes = await dao.updateIncOne(request,'user',{_id:user._id},{gold:Number(battleReward)});
-        // 更新宠物窝状态
-        var landUpdateRes = await dao.updateIncOne(request,'land',{_id:land._id},{season_stealed:Number(battleReward),stealed_count:1});
-        message = "偷取成功,获得" + battleReward + "金币，恭喜恭喜！"; 
-    } else {
-        // 更新自己金钱
-         var updateUserRes = await dao.updateIncOne(request,'user',{_id:user._id},{gold:-Number(battleReward)});
-         // 更新朋友金钱
-         var updateFriendRes = await dao.updateIncOne(request,'user',{_id:friend._id},{gold:Number(battleReward)});
-         message = "偷取失败,损失" + battleReward + "金币,大侠请重新来过"; 
-    }
-
-    var stealRecord = {};
-    stealRecord.gold = battleReward;
-    stealRecord.success = success;
-    stealRecord.stealer = user.username;
-    stealRecord.stealer_id = user._id;
-    stealRecord.stealFrom = friend.username;
-    stealRecord.stealFromId = friend._id;
-    stealRecord.createTime = new Date().getTime();
-    stealRecord.land_id = land._id;
-    stealRecord.seedname = land.seed.seedname;
-    stealRecord.dayString = dayString;
-    stealRecord.land_code = land.code;
-    stealRecord.season = land.season;
-    stealRecord.grouth_id = land.grouth_id;
-    var saveRes = await dao.save(request,'stealRecord',stealRecord);
-
-    stealRecord.type = 2;
-    var saveDynamic = await dao.save(request,'dynamic',stealRecord);
-    var data = {
-        success:success,
-        gold:battleReward
-    }
+    stealRecord.fromId = stealFromUser._id  + "";
+    stealRecord.area = 1; // 1 农场 2 牧场
+    stealRecord.land_id = land._id + "";
+    stealRecord.grow_id = land.grow_id;
+    stealRecord.harvest_id = harvest._id + "";
+    await dao.save(request,'stealRecrod',stealRecord);
+    // 更新收益
+    await dao.updateIncOne(request,'harvest',{_id:harvest._id + ""},{gold:-gold,experience:-experience,plt_sessence:-ess,hb:-hb});
+    var data = {};
+    data.gold = gold;
+    data.ess = ess;
+    data.experience = experience;
+    data.hb = hb;
     reply({
-                "message":message,
+                "message":"偷取成功，获得金币"+gold+'个，植物精华'+ ess + "个，经验"+experience + ",红包" + hb +"元。",
                 "statusCode":101,
                 "status":true,
                 "resource":data

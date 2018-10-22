@@ -649,7 +649,7 @@ module.exports = [
      //获取用户好友列表
     {
         method:'GET',
-        path:'/user/friends',
+        path:'/user/friends/{page}/{size}',
         handler:userService.getUserFriend,
         config:{
             auth:{
@@ -662,7 +662,11 @@ module.exports = [
             validate: {
                  headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
+                }).unknown(),
+                params:{
+                    page : Joi.number().default(0).description("页数"),
+                    size : Joi.number().default(0).description("长度")
+                },                
             }
         }
     },
