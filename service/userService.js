@@ -1801,7 +1801,9 @@ exports.upgrade = async function(request,reply){
         user = await dao.findById(request,'user',user._id + "");
         goldUseRecord.afterBlance = user.gold;
         await dao.save(request,'goldUseRecord',goldUseRecord);
-
+        
+        await userService.updateLandLockstatus(request,user);
+        
         reply({"message":"升级成功！","statusCode":101,"status":true});
     } else {
         reply({"message":"经验还不够升级！","statusCode":102,"status":false});
