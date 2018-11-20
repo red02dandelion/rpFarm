@@ -8,8 +8,8 @@ var CryptoJS = require("crypto-js");
 var svgCaptcha = require('svg-captcha');
 var userService = require("../service/userService");
 var landService = require("../service/landService");
-var petService = require("../service/petService");
-var farmService = require("../service/farmService");
+// var petService = require("../service/petService");
+// var farmService = require("../service/farmService");
 // var secretUtils = require("../service/secretUtils");
 const settings = require('../settings');
 var hosts = settings.host+":"+settings.hostPort;
@@ -156,11 +156,11 @@ exports.userLogin = async function(request,reply){
     console.log('loginuser11111',user);
     // delete user.hmac_password;
     await userService.updateLandLockstatus(request,user);
-    await userService.updateFarmLockstatus(request,user);
+    // await userService.updateFarmLockstatus(request,user);
     await landService.updateUserLandGrows(request,user);
-    await farmService.updateUserLandGrows(request,user);
-    await userService.updateTl(request);
-    user.nextExe = await nextExe(request,user);
+    // await farmService.updateUserLandGrows(request,user);
+    // await userService.updateTl(request);
+    // user.nextExe = await nextExe(request,user);
     var growSetting = await dao.findOne(request,'settingUserGrow',{class:user.class});
     if (growSetting) {
         user.needExe = growSetting.nex_exe;
@@ -168,18 +168,18 @@ exports.userLogin = async function(request,reply){
         user.needExe = -1;
     }
     var lands = await dao.find(request,'land',{user_id:user._id + ""});
-    var farms = await dao.find(request,'farm',{user_id:user._id + ""});
+    // var farms = await dao.find(request,'farm',{user_id:user._id + ""});
     var cf = await dao.findOne(request,'systemSet',{});
     var landUlcCdts = await dao.find(request,'landUlcCdts',{},{},{code:1});
-    var farmUlcCdts = await dao.find(request,'farmUlcCdts',{},{},{code:1});
+    // var farmUlcCdts = await dao.find(request,'farmUlcCdts',{},{},{code:1});
     var currentTime = new Date().getTime();
     var data = {
         user:user,
         lands:lands,
-        farms:farms,
+        // farms:farms,
         cf:cf,
         landUlcCdts:landUlcCdts,
-        farmUlcCdts:farmUlcCdts,
+        // farmUlcCdts:farmUlcCdts,
         currentTime:currentTime
     };
     reply({"message":"用户登陆成功","statusCode":101,"status":true,"resource":data});
