@@ -25,7 +25,27 @@ module.exports = [
             }
         }
     },
-
+    // 用户登录
+    {
+        method:'GET',
+        path:'/user/ability',
+        handler:userService.userAlibilty,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '用户登陆接口',
+            notes: '用户登陆接口',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
     //  // paipaiTest
     // {
     //     method:'GET',
@@ -574,6 +594,31 @@ module.exports = [
 //         }
 //     },
 
+  //   同意申请
+    {
+        method:'GET',
+        path:'/user/search/{username}',
+        handler:userService.searchUser,
+        config:{
+            auth:{
+                strategy: 'bearer',
+                scope: ["USER"]
+            }, 
+            description: '搜索用户',
+            notes: '搜索用户',
+            tags: ['api'],
+            validate: {
+                 headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    username:Joi.string().required().description('username')
+                }
+                
+            }
+        }
+    },
+
     // 添加好友
     {
         method:'POST',
@@ -723,24 +768,7 @@ module.exports = [
 
 
         
-    // 用户槟榔数
-       {
-        method:'POST',
-        path:'/user/iareca/',
-        handler:userService.iarecaCount,
-        config:{
-            auth:false, 
-            description: '用户槟榔数',
-            notes: '用户槟榔数Api',
-            //tags: ['api'],
-            validate: {
-                payload:{
-                    userId:Joi.string().required().description('用户ID'),
-                    mac:Joi.string().required().description('加密值')
-                }
-            }
-        }
-    },
+
 
         // 用户槟榔数
        {

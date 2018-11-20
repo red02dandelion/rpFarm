@@ -66,8 +66,8 @@ module.exports = [
                     name: Joi.string().description('真实名称'),
                     state: Joi.number().default(1).description('管理员状态 0冻结 1 正常'),
                     headImg: Joi.string().default("").description('管理员头像'),
-                    telephone: Joi.string().description('管理员手机号'),
-                    roleId: Joi.string().required().description('角色id')
+                    telephone: Joi.string().description('管理员手机号')
+                    // roleId: Joi.string().required().description('角色id')
                 },
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
@@ -550,7 +550,9 @@ module.exports = [
                     name:Joi.string().description('植物名称'),
                     sortFlag:Joi.number().description('解锁顺序'),
                     img:Joi.string().description('图片'),
-                    qualityId:Joi.number().description('品质等级'),
+                    img1:Joi.string().description('无底框图片'),
+                    qualityId:Joi.number().required().default(0).description('品质等级'),
+                    animationId:Joi.number().required().description('动效ID'),
                     unlockTime:Joi.number().description('解锁次数'),
                     everyPrice:Joi.number().description('每次解锁花费金币'),
                     plantPrice:Joi.number().description('种植价格'),
@@ -598,10 +600,12 @@ module.exports = [
     
                 payload:{
                     name:Joi.string().description('植物名称'),
-                    sortFlag:Joi.number().description('解锁顺序'),
+                    sortFlag:Joi.number().required().description('解锁顺序'),
                     img:Joi.string().description('图片'),
+                    img1:Joi.string().description('无底框图片'),
                     qualityId:Joi.number().description('品质等级'),
-                    unlockTime:Joi.number().description('解锁次数'),
+                    animationId:Joi.number().required().description('动效ID'),
+                    unlockTime:Joi.number().default(0).description('解锁次数'),
                     everyPrice:Joi.number().description('每次解锁花费金币'),
                     plantPrice:Joi.number().description('种植价格'),
                     needProp:Joi.number().description('种植所需道具ID'),
@@ -624,6 +628,32 @@ module.exports = [
                     stdEssMaxPp:Joi.number().description('偷走精华比例上限'),
                     stdGoldMaxPp:Joi.number().description('偷走金币比例上限'),
                     dropId:Joi.number().description('掉落组ID')
+                }
+            }
+        }
+    },
+
+                  // 删除商品
+    {
+        method:'DELETE',
+        path:'/admin/plant/{id}',
+        handler:adminService.delPlant,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '删除系统公告',
+            notes: '删除系统公告API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+    
+                params:{
+                    id:Joi.string().required().description("id"),
+                 
                 }
             }
         }
@@ -738,6 +768,31 @@ module.exports = [
         }
     },
 
+        {
+        method:'DELETE',
+        path:'/admin/drop/{id}',
+        handler:adminService.deleteDrop,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '删除系统公告',
+            notes: '删除系统公告API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+    
+                params:{
+                    id:Joi.string().required().description("id"),
+                 
+                }
+            }
+        }
+    },
+
 
     // 商品列表
     {
@@ -821,7 +876,9 @@ module.exports = [
                     plt_sessence:Joi.number().description("植物精华"),
                     soldPrice:Joi.number().description("出售价格"),
                     item_id:Joi.string().description("真实商品ID"),
-                    sendStrCount:Joi.number().description("起送数量")
+                    sendStrCount:Joi.number().description("起送数量"),
+                    time:Joi.number().description("加工时间"),
+                    sortFlag:Joi.number().description("排序")
                 }
             }
         }
@@ -852,12 +909,40 @@ module.exports = [
                     plt_sessence:Joi.number().description("植物精华"),
                     soldPrice:Joi.number().description("出售价格"),
                     item_id:Joi.string().description("真实商品ID"),
-                    sendStrCount:Joi.number().description("起送数量")
+                    sendStrCount:Joi.number().description("起送数量"),
+                    time:Joi.number().description("加工时间"),
+                    sortFlag:Joi.number().description("排序")
                 }
             }
         }
     },
 
+
+             // 删除商品
+    {
+        method:'DELETE',
+        path:'/admin/goods/{id}',
+        handler:adminService.deleteGoods,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '删除系统公告',
+            notes: '删除系统公告API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+    
+                params:{
+                    id:Joi.string().required().description("id"),
+                 
+                }
+            }
+        }
+    },
 
     // 土地解锁设置
     {
@@ -1042,9 +1127,35 @@ module.exports = [
                     upGradeGold:Joi.number().description('升级所需金币'),
                     hp:Joi.number().description("生命值"),
                     damage:Joi.number().description("伤害"),
-                    vitality:Joi.number().description("元气"),
+                    vitality:Joi.number().description("气质"),
                     crit_rate:Joi.number().description("暴击率"),
                     crit_coefficient:Joi.number().description("暴击系数")
+                }
+            }
+        }
+    },
+
+              // 删除商品
+    {
+        method:'DELETE',
+        path:'/admin/grow/{id}',
+        handler:adminService.delGrow,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '删除系统公告',
+            notes: '删除系统公告API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+    
+                params:{
+                    id:Joi.string().required().description("id"),
+                 
                 }
             }
         }
@@ -1129,6 +1240,8 @@ module.exports = [
         }
     },
 
+   
+
       {
         method:'PUT',
         path:'/admin/prop/{id}',
@@ -1180,6 +1293,32 @@ module.exports = [
                     use:Joi.string().description("用途"),
                     des:Joi.string().description("描述"),
                     soldPrice:Joi.number().description("出售价格")
+                }
+            }
+        }
+    },
+
+             // 删除商品
+    {
+        method:'DELETE',
+        path:'/admin/prop/{id}',
+        handler:adminService.deleteProp,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '删除系统公告',
+            notes: '删除系统公告API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+    
+                params:{
+                    id:Joi.string().required().description("id"),
+                 
                 }
             }
         }

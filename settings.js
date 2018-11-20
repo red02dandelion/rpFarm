@@ -2,7 +2,7 @@
  * Created by shichenda on 2016/6/30.
  */
 module.exports = {
-    host: 'http://als.517zs.cn',
+    host: 'http://t.api.ws.cn/rest/',
     hostPort: 3232,
     AppID: 'wx0d94b069b7c56616',
     AppSecret: 'af6341f6242e127b3cce31622e7715a7',

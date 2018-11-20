@@ -30,7 +30,7 @@ exports.sellGoods = async function(request,reply) {
     var goldUseRecord = {};
     goldUseRecord.username = user.username;
     goldUseRecord.user_id = user._id + "";
-    goldUseRecord.type = 4; // 1 解锁种子 2 种植种子  3   4 出售道具 
+    goldUseRecord.type = 4; // 1 解锁种子 2 种植种子  3 升级人物  4 出售道具 
     goldUseRecord.goodsName = goods.name;
     goldUseRecord.des = "出售道具";
     goldUseRecord.goods_id = goods._id + "";
@@ -52,8 +52,26 @@ exports.sellGoods = async function(request,reply) {
     await dao.save(request,'sellRecord',sellRecord);
     reply({
         "message":"出售成功!",
-        "statusCode":102,
+        "statusCode":101,
         "status":true,
         "resource":{gold:gold}
     });
+}
+
+
+exports.tlLiquids = async function(request,reply) {
+    var user = request.auth.credentials;
+    var time = new Date().getTime();
+    var sytemSet2 = await dao.findOne(request,'systemSet2',{});
+    var tlProp = await dao.findOne(request,'prop',{id:sytemSet2.tlLiquidPropId});
+    if (!tlProp) {
+        reply({
+            "message":"无可升级的体力药!",
+            "statusCode":102,
+            "status":false
+        });
+        return;
+    }
+    var warahouseProp = await dao.findOne(request,'warahouse',{propId:tlProp.id});
+    
 }

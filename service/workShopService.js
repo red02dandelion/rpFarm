@@ -6,20 +6,35 @@ exports.overView = async function(request,reply) {
     var displayGoods;
     var displayGoodsArr = [];
     var goodsArr;
-    var goods = await dao.find(request,'exgoods',{},{},{u_class:1});
+    var goods = await dao.find(request,'exgoods',{},{},{sortFlag:-1});
+     if (goods.length <= 0) {
+
+         reply({
+            "message":"无商品!",
+            "statusCode":102,
+            "status":false
+        });
+         return;
+    }
     // 查找正在加工中的商品
     var produce  = await dao.findOne(request,'produce',{user_id:user._id + "",status:{$ne:3}});
     if (produce){
         await workShopService.updateProduce(request,produce);
         displayGoods = await dao.findById(request,'exgoods',produce.goods_id);
-        displayGoods.status = produce.status;
-        displayGoods.inProduce = 1;
-        displayGoods.produceTime = produce.createTime;
+        if (displayGoods) {
+            displayGoods.status = produce.status;
+            displayGoods.inProduce = 1;
+            displayGoods.produceTime = produce.createTime;
+        } else {
+             await dao.del(request,'produce',{_id:produce._id + ""});
+             displayGoods = goods[0];
+        }
     } else {
         displayGoods = goods[0];
         displayGoods.status = 0;
         displayGoods.inProduce = 0; 
     }
+    console.log('displayGoods',displayGoods);
     if (displayGoods) {
         displayGoodsArr = [displayGoods];
     }
@@ -58,7 +73,7 @@ exports.produceGoods = async function(request,reply) {
         return;
     }
     if (goods.needProp > 0) {
-        var prop = await dao.findOne(request,'warahouse',{propId:goods.needProp,count:{$gt:goods.needCount}});
+        var prop = await dao.findOne(request,'warahouse',{user_id:user._id + "",propId:goods.needProp,count:{$gte:goods.needCount}});
         if (!prop) {
             reply({
                 "message":"您没有足够的合成道具!",
@@ -87,7 +102,7 @@ exports.produceGoods = async function(request,reply) {
     produce.createTime = time;
     produce.harvestTime = time + goods.time * 1000;
     produce.user_id = user._id + "";
-    produce.status = 1; // 1 加工中 2 加工完成 3 已收获
+    produce.status = 1; // 1   2 加工完成 3 已收获
     produce.goodsId = goods.id;
     produce.goods_id = goods._id + "";
     produce.propId = goods.propId;
@@ -119,6 +134,21 @@ exports.harvestProduce = async function(request,reply) {
         return;
     }
     var prop = await dao.findOne(request,'prop',{id:produce.propId});
+    if (!prop) {
+        prop = {};
+        // await dao.updateOne(request,'produce',{_id:produce._id + ""},{status:3});
+        prop.name = produce.name;
+        prop.img = produce.img;
+
+        await dao.del(request,'produce',{_id:produce._id + ""});
+        reply({
+            "message":"收获失败，该商品已经下架!",
+            "statusCode":102,
+            "status":true,
+            "resource":prop
+        });
+        return;
+    }
     prop.count = 1;
     var prop_id = prop._id + "";
     var propId = prop.id; 
@@ -137,6 +167,8 @@ exports.harvestProduce = async function(request,reply) {
         await dao.save(request,'warahouse',propInHouse);
     }
     await dao.updateOne(request,'produce',{_id:produce._id + ""},{status:3});
+    prop.name = produce.name;
+    prop.img = produce.img;
     reply({
         "message":"收获成功!",
         "statusCode":101,
@@ -158,7 +190,9 @@ exports.goodsPropFeeAdd = async function(request,goods) {
     if (goods.needProp > 0) {
         prop = await dao.findOne(request,"prop",{id:goods.needProp});
     }
-    goods.prop = prop;
+    if (prop) {
+        goods.prop = prop;
+    }
 }
 // 所需道具
 exports.goodsArrPropFeeAdd = async function(request,goodsArr) { 
@@ -191,6 +225,15 @@ exports.sendToHome = async function(request,reply) {
     if (warahouseProp.type != 2) {
         reply({
             "message":"该道具不是商品!",
+            "statusCode":102,
+            "status":false
+        });
+        return;
+    }
+    console.log('');
+    if (user.appLevel.levelName != "黄金店主" && user.appLevel.levelName != "销售经理") {
+        reply({
+            "message":"只有黄金店主和销售经理才能邮寄商品!",
             "statusCode":102,
             "status":false
         });

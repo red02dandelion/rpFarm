@@ -545,3 +545,31 @@ exports.del = function(request,collectionName,where){
         );
     });
 }
+
+/**
+ * 删除多条数据
+ * @param request 请求上下文
+ * @param where  更新条件
+ * @param reply 更新内容
+ */
+exports.delSum = function(request,collectionName,where){
+    var db = request.server.plugins['hapi-mongodb'].db;
+    if(where._id){
+        var ObjectID = request.server.plugins['hapi-mongodb'].ObjectID;
+        where._id = new ObjectID(where._id);
+    }
+    return new Promise(function(resolve, reject) {
+        db.collection(collectionName).remove(
+            where, 
+            function (err, result) {
+                if (err) {
+                    request.server.log(['error'], err);
+                    throw err;
+                    resolve(null);
+                } else {
+                    resolve(result);
+                }
+            }
+        );
+    });
+}

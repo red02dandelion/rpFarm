@@ -10,10 +10,10 @@ var CryptoJS = require("crypto-js");
 
 //验证函数
 exports.validateFunc = function(token, request, callback){
-    console.log(token);
+    // console.log(token);
     var user;
     var tokens = token.split(":");
-    console.log(tokens);
+    // console.log(tokens);
     var db = request.server.plugins['hapi-mongodb'].db;
     var collectionName;
     if(tokens.length==2){
@@ -36,11 +36,11 @@ exports.validateFunc = function(token, request, callback){
         }
         if(result){
             user = result;
-            console.log("user",user);
+            // console.log("user",user);
             var decoded;
             try {
                 var password = CryptoJS.AES.decrypt(result.password,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8);
-                console.log("password",password);
+                // console.log("password",password);
                 var passwordmd5 = CryptoJS.HmacMD5(password,password).toString();
                 decoded = CryptoJS.AES.decrypt(tokens[1], passwordmd5).toString(CryptoJS.enc.Utf8).split(":");
             }catch (e){
@@ -50,12 +50,12 @@ exports.validateFunc = function(token, request, callback){
                 // throw e;
                 return;
             }
-            console.log('decoded is',decoded);
+            // console.log('decoded is',decoded);
             //console.log('request.url.path is',request.url.path);
             //对比访问的url是否与token中的url相等
             if(decoded[0]!=request.url.path){
-                console.log('decoded[0]',decoded[0]);
-                console.log('request.url.path',request.url.path);
+                // console.log('decoded[0]',decoded[0]);
+                // console.log('request.url.path',request.url.path);
                 callback(null, false, null);
                 return;
             }
@@ -87,7 +87,7 @@ exports.validateFunc = function(token, request, callback){
                  return;
             });
         }else{
-        //    //console.log("用户不存在");
+        //    console.log("用户不存在");
            callback(null, false, null);
         }
     });
