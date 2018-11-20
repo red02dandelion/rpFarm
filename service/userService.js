@@ -1773,6 +1773,16 @@ exports.upgrade = async function(request,reply){
          reply({"message":"金币不足","statusCode":102,"status":true});
          return;
     }
+    var systemSet  = await dao.findOne(request,'systemSet',{});
+    if (user.class >= userClassLimit) {
+        var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
+        if (dog) {
+            if (user.class - dog.class >= systemSet.petMaxGrater) {
+                reply({"message":"人物不得大于宠物" + systemSet.petMaxGrater + "级！","statusCode":102,"status":true});
+                return
+            }
+        }
+    }
     if (user.experience > next_exe) {
         await dao.updateIncOne(request,'user',{_id:user._id + ""},{class:1});
         await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:-settingGrow.upGradeGold});
