@@ -317,7 +317,6 @@ exports.serverUpto = async function(request,reply){
             }
             
             // await userService.updateLandLockstatus(request,user);
-          
             let dateTime = format("yyyy-M-d",new Date());
             var todoyAdd = await dao.find(request,"userRecord",{createTime:format("yyyy-M-d",new Date())});
             if(todoyAdd.length != 0){
