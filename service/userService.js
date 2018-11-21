@@ -160,7 +160,7 @@ exports.userLogin = async function(request,reply){
     await landService.updateUserLandGrows(request,user);
     // await farmService.updateUserLandGrows(request,user);
     // await userService.updateTl(request);
-    // user.nextExe = await nextExe(request,user);
+    user.nextExe = await nextExe(request,user);
     var growSetting = await dao.findOne(request,'settingUserGrow',{class:user.class});
     if (growSetting) {
         user.needExe = growSetting.nex_exe;
