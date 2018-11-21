@@ -1773,12 +1773,12 @@ exports.upgrade = async function(request,reply){
          return;
     }
     var systemSet  = await dao.findOne(request,'systemSet',{});
-    if (user.class >= userClassLimit) {
+    if (user.class >= systemSet.userClassLimit) {
         var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
         if (dog) {
             if (user.class - dog.class >= systemSet.petMaxGrater) {
                 reply({"message":"人物不得大于宠物" + systemSet.petMaxGrater + "级！","statusCode":102,"status":true});
-                return
+                return ;
             }
         }
     }
