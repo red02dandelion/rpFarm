@@ -1809,6 +1809,8 @@ exports.upgrade = async function(request,reply){
         await userService.updateLandLockstatus(request,user);
         var beforeData = {class:user.class - 1,setting:beforeSetttings};
         var afterData = {class:user.class,setting:afterSettings};
+
+        // 添加dw 
         reply({"message":"升级成功！","statusCode":101,"status":true,resource:[beforeData,afterData]});
     } else {
         reply({"message":"经验还不够升级！","statusCode":102,"status":false});
