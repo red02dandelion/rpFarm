@@ -165,7 +165,13 @@ exports.userLogin = async function(request,reply){
     if (growSetting) {
         user.needExe = growSetting.nex_exe;
     } else {
+        // 所需经验为-1就是满级
         user.needExe = -1;
+    }
+
+    var afterSetting = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
+    if (!afterSetting) {
+          user.needExe = -1;
     }
     var lands = await dao.find(request,'land',{user_id:user._id + ""});
     // var farms = await dao.find(request,'farm',{user_id:user._id + ""});
@@ -1762,6 +1768,7 @@ exports.delUser = async function(request,reply){
 // 更新用户
 exports.upgrade = async function(request,reply){
     var user = request.auth.credentials;
+    // 下一级所需总经验
     var next_exe = await nextExe(request,user);
     var beforeSetttings = await dao.findOne(request,'settingUserGrow',{class:user.class});
     var afterSettings = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
