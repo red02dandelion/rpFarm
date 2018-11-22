@@ -616,9 +616,10 @@ exports.addPlant = async function(request,reply) {
         return ;
     }
     
-    var plants = await dao.find(request,'plant',{},{id:-1});
+    var plants = await dao.find(request,'plant',{},{},{id:-1});
     var lastPlant = plants[0];
-    plant.id = lastPlant.id + 1;
+    plant.id = Number(Number(lastPlant.id) + 1);
+    plant.createTime = new Date().getTime();
     // plant.sortFlag = lastPlant.id + 1;
     plant.qualityName = tag.name;
     plant.animationName = animationPlant.animationName;
@@ -715,9 +716,9 @@ exports.addGrow = async function(request,reply) {
         reply({"message":"该等级成长参数已配置过！","statusCode":102,"status":true});
         return ;
     }
-    var plants = await dao.find(request,'settingUserGrow',{},{id:-1});
+    var plants = await dao.find(request,'settingUserGrow',{},{},{id:-1});
     var lastPlant = plants[0];
-    plant.id = lastPlant.id + 1;
+    plant.id = Number(Number(lastPlant.id) + 1);
     // var tag = await dao.findOne(request,'',);
     await dao.save(request,'settingUserGrow',plant);
     reply({"message":"添加成功","statusCode":107,"status":true,"resource":plant});
@@ -798,10 +799,11 @@ exports.putProp = async function(request,reply) {
 }
 exports.addProp = async function(request,reply) { 
     var plant = request.payload;
-    var plants = await dao.find(request,'prop',{},{id:-1});
+    var plants = await dao.find(request,'prop',{},{},{id:-1});
     var lastPlant = plants[0];
-    
-    plant.id = lastPlant.id + 1;
+    // console.log('plants',plants);
+    // console.log('lastPlant',lastPlant);
+    plant.id = Number(Number(lastPlant.id) + 1);
     plant.func_id = 1004;
     plant.type = 1;
     plant.sendStrCount = 0;
