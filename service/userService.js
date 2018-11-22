@@ -1773,15 +1773,15 @@ exports.upgrade = async function(request,reply){
     var beforeSetttings = await dao.findOne(request,'settingUserGrow',{class:user.class});
     var afterSettings = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
      if (!beforeSetttings) {
-        reply({"message":"已经满级无需升级！","statusCode":102,"status":true});
+        reply({"message":"已经满级无需升级！","statusCode":102,"status":false});
         return ;
     }
     if (!afterSettings) {
-        reply({"message":"已经满级无需升级！","statusCode":102,"status":true});
+        reply({"message":"已经满级无需升级！","statusCode":102,"status":false});
         return ;
     }
     if (user.gold < beforeSetttings.upGradeGold) {
-         reply({"message":"金币不足","statusCode":102,"status":true});
+         reply({"message":"金币不足","statusCode":102,"status":false});
          return;
     }
     var systemSet  = await dao.findOne(request,'systemSet',{});
@@ -1816,7 +1816,7 @@ exports.upgrade = async function(request,reply){
         await userService.updateLandLockstatus(request,user);
         var beforeData = {class:user.class - 1,setting:beforeSetttings};
         var afterData = {class:user.class,setting:afterSettings};
-
+        console.log('datas',[beforeData,afterData]);
         // 添加dw 
         reply({"message":"升级成功！","statusCode":101,"status":true,resource:[beforeData,afterData]});
     } else {
