@@ -1784,6 +1784,7 @@ exports.upgrade = async function(request,reply){
          reply({"message":"金币不足","statusCode":102,"status":false});
          return;
     }
+    // 增加注释
     var systemSet  = await dao.findOne(request,'systemSet',{});
     if (user.class >= systemSet.userClassLimit) {
         var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
