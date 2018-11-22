@@ -1763,12 +1763,17 @@ exports.delUser = async function(request,reply){
 exports.upgrade = async function(request,reply){
     var user = request.auth.credentials;
     var next_exe = await nextExe(request,user);
-    var settingGrow = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
-    if (!settingGrow) {
+    var beforeSetttings = await dao.findOne(request,'settingUserGrow',{class:user.class});
+    var afterSettings = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
+     if (!beforeSetttings) {
         reply({"message":"已经满级无需升级！","statusCode":102,"status":true});
         return ;
     }
-    if (user.gold < settingGrow.upGradeGold) {
+    if (!afterSettings) {
+        reply({"message":"已经满级无需升级！","statusCode":102,"status":true});
+        return ;
+    }
+    if (user.gold < beforeSetttings.upGradeGold) {
          reply({"message":"金币不足","statusCode":102,"status":true});
          return;
     }
@@ -1784,7 +1789,7 @@ exports.upgrade = async function(request,reply){
     }
     if (user.experience > next_exe) {
         await dao.updateIncOne(request,'user',{_id:user._id + ""},{class:1});
-        await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:-settingGrow.upGradeGold});
+        await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:-beforeSetttings.upGradeGold});
 
         var goldUseRecord = {};
         goldUseRecord.username = user.username;
@@ -1793,7 +1798,7 @@ exports.upgrade = async function(request,reply){
         goldUseRecord.goodsName = "人物升级";
         goldUseRecord.des = "人物升级";
         goldUseRecord.goods_id = "";
-        goldUseRecord.gold =  -settingGrow.upGradeGold;
+        goldUseRecord.gold =  -beforeSetttings.upGradeGold;
         goldUseRecord.preBlance = user.gold;
         goldUseRecord.createTime = new Date().getTime();
         goldUseRecord.count = 1;
@@ -1802,8 +1807,9 @@ exports.upgrade = async function(request,reply){
         await dao.save(request,'goldUseRecord',goldUseRecord);
         
         await userService.updateLandLockstatus(request,user);
-        
-        reply({"message":"升级成功！","statusCode":101,"status":true});
+        var beforeData = {class:user.class - 1,setting:beforeSetttings};
+        var afterData = {class:user.class,setting:afterSettings}
+        reply({"message":"升级成功！","statusCode":101,"status":true,resource:[beforeData,afterData]});
     } else {
         reply({"message":"经验还不够升级！","statusCode":102,"status":false});
     }
