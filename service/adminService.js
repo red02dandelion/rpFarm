@@ -713,7 +713,7 @@ exports.addGrow = async function(request,reply) {
     var plant = request.payload;
     var classGrow = await dao.findOne(request,'settingUserGrow',{class:request.payload.class});
     if (classGrow) {
-        reply({"message":"该等级成长参数已配置过！","statusCode":102,"status":true});
+        reply({"message":"该等级成长参数已配置过！","statusCode":102,"status":false});
         return ;
     }
     var plants = await dao.find(request,'settingUserGrow',{},{},{id:-1});
