@@ -278,9 +278,45 @@ exports.fight = async function(request,reply){
     fightRecord.other = enemy.username;
     fightRecord.winner = fightProcess.winner;
     fightRecord.process = fightProcess.fightProcess;
-    await dao.save(request,'fightRecord',fightRecord);
-    console.log("fightRecord",fightRecord);
+    var result =  await dao.save(request,'fightRecord',fightRecord);
+    
     reply({"message":"战斗结束！","statusCode":101,"status":true,resource:fightProcess});
+}
+
+exports.fightWithUser = async function(request,enemy){
+    var user = request.auth.credentials;
+    // 计算谁先手
+    var myDog = await dao.findOne(request,'dog',{user_id:user._id + ""});
+    var enemyDog = await dao.findOne(request,'dog',{user_id:enemy._id + ""});
+    var firAttacker;
+    if (myDog.class != enemyDog.class) {
+        firAttacker = myDog.class >  enemyDog.class ? user : enemy;
+    } else {
+        if (user.class != enemy.class) {
+            firAttacker = user.class > enemy.class ? user : enemy;
+        } else {
+            firAttacker = user;
+        }
+    }
+    var myFighter = await petService.getFighter(request,user);
+    var enemyFighter = await petService.getFighter(request,enemy);
+    var process = [];
+    var selfAttFlag = user.username == firAttacker.username ? 1 : 0;
+    var fightProcess = await fightRound(request,myFighter,enemyFighter,process,selfAttFlag);
+    console.log("fightProcess",fightProcess);
+    if (fightProcess == null) {
+        var fightRecord = {};
+        fightRecord.status = false;
+        return fightRecord;
+    }
+    var fightRecord = {};
+    fightRecord.status = true;
+    fightRecord.attacker = user.username;
+    fightRecord.other = enemy.username;
+    fightRecord.winner = fightProcess.winner;
+    fightRecord.process = fightProcess.fightProcess;
+    var result =  await dao.save(request,'fightRecord',fightRecord);
+    return result.ops[0];
 }
 
 async function fightRound(request,myFighter,enemyFighter,fightProcess,selfAttFlag){ 
