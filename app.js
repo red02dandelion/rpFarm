@@ -166,6 +166,8 @@ var scheduleService = require('./service/scheduleService');
             }
             console.log('Server runing at:',server.info.uri);
             server.log(['debug'], 'Started...');
+            console.log('Math.round(1.9)',Math.round(1.9));
+            console.log('parseInt(1.9)',parseInt(1.9));
         });
 
     });
