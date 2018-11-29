@@ -706,7 +706,7 @@ exports.putGrow = async function(request,reply) {
         reply({"message":"无此记录！","statusCode":102,"status":true});
         return ;
     }
-    await dao.updateOne(request,'dropGroups',{_id:request.params.id},request.payload);
+    await dao.updateOne(request,'settingUserGrow',{_id:request.params.id},request.payload);
     reply({"message":"更新成功","statusCode":101,"status":true,"resource":plant});
 }
 exports.addGrow = async function(request,reply) { 
