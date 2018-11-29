@@ -160,12 +160,18 @@ exports.userLogin = async function(request,reply){
     await landService.updateUserLandGrows(request,user);
     // await farmService.updateUserLandGrows(request,user);
     // await userService.updateTl(request);
-    // user.nextExe = await nextExe(request,user);
+    user.nextExe = await nextExe(request,user);
     var growSetting = await dao.findOne(request,'settingUserGrow',{class:user.class});
     if (growSetting) {
         user.needExe = growSetting.nex_exe;
     } else {
+        // 所需经验为-1就是满级
         user.needExe = -1;
+    }
+
+    var afterSetting = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
+    if (!afterSetting) {
+          user.needExe = -1;
     }
     var lands = await dao.find(request,'land',{user_id:user._id + ""});
     // var farms = await dao.find(request,'farm',{user_id:user._id + ""});
@@ -317,7 +323,6 @@ exports.serverUpto = async function(request,reply){
             }
             
             // await userService.updateLandLockstatus(request,user);
-          
             let dateTime = format("yyyy-M-d",new Date());
             var todoyAdd = await dao.find(request,"userRecord",{createTime:format("yyyy-M-d",new Date())});
             if(todoyAdd.length != 0){
@@ -1763,29 +1768,36 @@ exports.delUser = async function(request,reply){
 // 更新用户
 exports.upgrade = async function(request,reply){
     var user = request.auth.credentials;
+    // 下一级所需总经验
     var next_exe = await nextExe(request,user);
-    var settingGrow = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
-    if (!settingGrow) {
-        reply({"message":"已经满级无需升级！","statusCode":102,"status":true});
+    var beforeSetttings = await dao.findOne(request,'settingUserGrow',{class:user.class});
+    var afterSettings = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
+     if (!beforeSetttings) {
+        reply({"message":"已经满级无需升级！","statusCode":102,"status":false});
         return ;
     }
-    if (user.gold < settingGrow.upGradeGold) {
-         reply({"message":"金币不足","statusCode":102,"status":true});
+    if (!afterSettings) {
+        reply({"message":"已经满级无需升级！","statusCode":102,"status":false});
+        return ;
+    }
+    if (user.gold < beforeSetttings.upGradeGold) {
+         reply({"message":"金币不足","statusCode":102,"status":false});
          return;
     }
+    // 增加注释
     var systemSet  = await dao.findOne(request,'systemSet',{});
-    if (user.class >= userClassLimit) {
+    if (user.class >= systemSet.userClassLimit) {
         var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
         if (dog) {
             if (user.class - dog.class >= systemSet.petMaxGrater) {
-                reply({"message":"人物不得大于宠物" + systemSet.petMaxGrater + "级！","statusCode":102,"status":true});
-                return
+                reply({"message":"人物不得大于宠物" + systemSet.petMaxGrater + "级！","statusCode":102,"status":false});
+                return ;
             }
         }
     }
     if (user.experience > next_exe) {
         await dao.updateIncOne(request,'user',{_id:user._id + ""},{class:1});
-        await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:-settingGrow.upGradeGold});
+        await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:-beforeSetttings.upGradeGold});
 
         var goldUseRecord = {};
         goldUseRecord.username = user.username;
@@ -1794,15 +1806,20 @@ exports.upgrade = async function(request,reply){
         goldUseRecord.goodsName = "人物升级";
         goldUseRecord.des = "人物升级";
         goldUseRecord.goods_id = "";
-        goldUseRecord.gold =  -settingGrow.upGradeGold;
+        goldUseRecord.gold =  -beforeSetttings.upGradeGold;
         goldUseRecord.preBlance = user.gold;
         goldUseRecord.createTime = new Date().getTime();
         goldUseRecord.count = 1;
         user = await dao.findById(request,'user',user._id + "");
         goldUseRecord.afterBlance = user.gold;
         await dao.save(request,'goldUseRecord',goldUseRecord);
-
-        reply({"message":"升级成功！","statusCode":101,"status":true});
+        
+        await userService.updateLandLockstatus(request,user);
+        var beforeData = {class:user.class - 1,setting:beforeSetttings};
+        var afterData = {class:user.class,setting:afterSettings};
+        console.log('datas',[beforeData,afterData]);
+        // 添加dw 
+        reply({"message":"升级成功！","statusCode":101,"status":true,resource:[beforeData,afterData]});
     } else {
         reply({"message":"经验还不够升级！","statusCode":102,"status":false});
     }
