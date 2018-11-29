@@ -169,10 +169,10 @@ exports.userLogin = async function(request,reply){
         user.needExe = -1;
     }
 
-    var afterSetting = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
-    if (!afterSetting) {
-          user.needExe = -1;
-    }
+    // var afterSetting = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
+    // if (!afterSetting) {
+    //       user.needExe = -1;
+    // }
     var lands = await dao.find(request,'land',{user_id:user._id + ""});
     // var farms = await dao.find(request,'farm',{user_id:user._id + ""});
     var cf = await dao.findOne(request,'systemSet',{});
@@ -1771,15 +1771,12 @@ exports.upgrade = async function(request,reply){
     // 下一级所需总经验
     var next_exe = await nextExe(request,user);
     var beforeSetttings = await dao.findOne(request,'settingUserGrow',{class:user.class});
-    var afterSettings = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
-     if (!beforeSetttings) {
+    
+    if (!beforeSetttings) {
         reply({"message":"已经满级无需升级！","statusCode":102,"status":false});
         return ;
     }
-    if (!afterSettings) {
-        reply({"message":"已经满级无需升级！","statusCode":102,"status":false});
-        return ;
-    }
+   
     if (user.gold < beforeSetttings.upGradeGold) {
          reply({"message":"金币不足","statusCode":102,"status":false});
          return;
@@ -1795,7 +1792,12 @@ exports.upgrade = async function(request,reply){
             }
         }
     }
-    if (user.experience > next_exe) {
+    if (user.experience >= next_exe) {
+        var afterSettings = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
+        if (!afterSettings) {
+            reply({"message":"已经满级无需升级！","statusCode":102,"status":false});
+            return ;
+        }
         await dao.updateIncOne(request,'user',{_id:user._id + ""},{class:1});
         await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:-beforeSetttings.upGradeGold});
 
