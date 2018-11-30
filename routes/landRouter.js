@@ -240,7 +240,9 @@ module.exports = [
                 }).unknown(),
                 params:{
                      id:Joi.string().required().description("土地ID"),
-                     type:Joi.number().required().description("土地类型")
+                },
+                payload:{
+                        type:Joi.number().required().description("土地类型")
                 }
             }
         }
