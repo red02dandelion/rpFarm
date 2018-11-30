@@ -9,5 +9,9 @@ module.exports = {
     gid: 'gh_30091d11c1ce',
     token: 'henancanyinwang_2016',
     mch_id:'1358325602',
-    key:'4GzyUVVup3gxKwfOPIt9aYTnD8c8sFgg'
+    key:'4GzyUVVup3gxKwfOPIt9aYTnD8c8sFgg',
+    plantBotId:1000,
+    plantTopId:1005,
+    animalBotId:1000,
+    animalTopId:1005
 };                                                                  
