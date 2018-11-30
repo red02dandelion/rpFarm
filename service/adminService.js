@@ -6,6 +6,7 @@
 const dao = require("../dao/dao");
 var CryptoJS = require("crypto-js");
 const userService = require('../service/userService');
+const settings = require('../settings');
 // var payService = require('../service/payService');
 
 exports.userList = async function(request,reply){ 
@@ -505,7 +506,12 @@ exports.putPlant = async function(request,reply) {
         reply({"message":"查询失败","statusCode":102,"status":false,"resource":plant});
         return ;
     }
-
+   if (request.payload.animationId >= settings.plantBotId && request.payload.animationId <= settings.plantTopId) {
+       if (request.payload.animationId != plant.animationId) {
+           reply({"message":"基本植物的动效不能更改！","statusCode":102,"status":false,"resource":plant});
+           return ;
+       }
+   }
     var tag = await dao.findOne(request,'plantQuality',{id:request.payload.qualityId});
     if (!tag) {
         reply({"message":"无此标签","statusCode":102,"status":false});
@@ -638,7 +644,7 @@ exports.delPlant = async function(request,reply) {
     await dao.del(request,'plant',{_id:request.params.id + ""});
     var plants = await dao.find(request,'plant',{qualityId:prop.qualityId});
     if (plants.length <= 0) {
-        await dao.updateOne(request,'plantQuality',{id:prop.qualityId + ""},{hasSeed:0});
+        await dao.updateOne(request,'plantQuality',{id:prop.qualityId},{hasSeed:0});
     }
 
     reply({"message":"删除成功！","statusCode":101,"status":true});
