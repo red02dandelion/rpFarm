@@ -1052,73 +1052,182 @@ exports.getUserFriend = async function(request,reply){
         for (var index in friends) {
             var curFriend = friends[index];
             var friend = await dao.findOne(request,'user',{username:curFriend.friend});
-            if (friend) {
-                // await userService.updateLandLockstatus(request,friend);
-                friend.nextHavest = 0;     // 
-                friend.nextHavestTime = -1; // 下次收获的时间
-                friend.land_id = "";
-                friend.nextHarvestType = -1; //  -1 下次没有成熟 1 下次成熟的是土地 2 下次成熟的是牧场
-                var nextHarvestland;
-                var nextharvestFarm;
-                var next = {};
-                var lands = await dao.find(request,'land',{user_id:friend._id + "",$or:[{status:2},{status:3}]},{},{harvestTime:1});
-                if (lands.length > 0) {
-                    console.log('lands',lands);
-                    var findStealRecord = await dao.findOne(request,'stealRecrod',{username:user.username,grow_id:lands[0].grow_id});
-                    if (!findStealRecord) {
-                        // friend.nextHavestTime = lands[0].harvestTime;
-                        nextHarvestland = lands[0];
-                        friend.nextHavest = 1; 
-                        friend.land_id = lands[0]._id + "";   
+            if (friend) { 
+                await friendHarvestStatuts(request,friend);
+                await friendCommisionStatuts(request,friend);
+            }
+            displayFriends.push(friend);
+        }
+    }
+    
+    // var displayFriends = [];
+    // if (friends.length > 0) {
+    //     for (var index in friends) {
+    //         var curFriend = friends[index];
+    //         var friend = await dao.findOne(request,'user',{username:curFriend.friend});
+    //         if (friend) {
+    //             // await userService.updateLandLockstatus(request,friend);
+    //             friend.nextHavest = 0;     // 
+    //             friend.nextHavestTime = -1; // 下次收获的时间
+    //             friend.land_id = "";
+    //             friend.nextHarvestType = -1; //  -1 下次没有成熟 1 下次成熟的是土地 2 下次成熟的是牧场
+    //             var nextHarvestland;
+    //             var nextharvestFarm;
+    //             var next = {};
+    //             var lands = await dao.find(request,'land',{user_id:friend._id + "",$or:[{status:2},{status:3}]},{},{harvestTime:1});
+    //             if (lands.length > 0) {
+    //                 console.log('lands',lands);
+    //                 var findStealRecord = await dao.findOne(request,'stealRecrod',{username:user.username,grow_id:lands[0].grow_id});
+    //                 if (!findStealRecord) {
+    //                     // friend.nextHavestTime = lands[0].harvestTime;
+    //                     nextHarvestland = lands[0];
+    //                     friend.nextHavest = 1; 
+    //                     friend.land_id = lands[0]._id + "";   
 
-                    }               
-                }
-                var farms = await dao.find(request,'farm',{user_id:friend._id + "",$or:[{status:2},{status:3}]},{},{harvestTime:1});
-                if (farms.length > 0) {
-                    console.log('lands',lands);
-                    var findStealRecord = await dao.findOne(request,'stealRecrod',{username:user.username,grow_id:farms[0].grow_id});
-                    if (!findStealRecord) {
-                        // friend.nextHavestTime = lands[0].harvestTime;
-                        nextharvestFarm = farms[0];
-                        friend.nextHavest = 1; 
-                        friend.land_id = farms[0]._id + "";   
+    //                 }               
+    //             }
+    //             var farms = await dao.find(request,'farm',{user_id:friend._id + "",$or:[{status:2},{status:3}]},{},{harvestTime:1});
+    //             if (farms.length > 0) {
+    //                 console.log('lands',lands);
+    //                 var findStealRecord = await dao.findOne(request,'stealRecrod',{username:user.username,grow_id:farms[0].grow_id});
+    //                 if (!findStealRecord) {
+    //                     // friend.nextHavestTime = lands[0].harvestTime;
+    //                     nextharvestFarm = farms[0];
+    //                     friend.nextHavest = 1; 
+    //                     friend.land_id = farms[0]._id + "";   
 
-                    }               
-                }
-                if (nextHarvestland) {
-                    console.log('1111');
-                    console.log('nextHarvestland',nextHarvestland);
-                    friend.nextHavestTime = nextHarvestland.harvestTime;
-                    friend.nextHarvestType = 1;
-                    if (nextharvestFarm) {
-                        if (nextharvestFarm.harvestTime < nextHarvestland.harvestTime) {
-                            console.log('2222');
-                            friend.nextHavestTime = nextharvestFarm.harvestTime;
-                            friend.nextHarvestType = 2;
-                        }
-                    }
-                }
+    //                 }               
+    //             }
+    //             if (nextHarvestland) {
+    //                 console.log('1111');
+    //                 console.log('nextHarvestland',nextHarvestland);
+    //                 friend.nextHavestTime = nextHarvestland.harvestTime;
+    //                 friend.nextHarvestType = 1;
+    //                 if (nextharvestFarm) {
+    //                     if (nextharvestFarm.harvestTime < nextHarvestland.harvestTime) {
+    //                         console.log('2222');
+    //                         friend.nextHavestTime = nextharvestFarm.harvestTime;
+    //                         friend.nextHarvestType = 2;
+    //                     }
+    //                 }
+    //             }
 
-                 if (nextharvestFarm) {
-                    console.log('2222');
-                    console.log('nextharvestFarm',nextharvestFarm);
-                    friend.nextHavestTime = nextharvestFarm.harvestTime;
-                    friend.nextHarvestType = 2;
-                    if (nextHarvestland) {
-                        if (nextHarvestland.harvestTime < nextharvestFarm.harvestTime) {
-                            console.log('2222');
-                            friend.nextHavestTime = nextHarvestland.harvestTime;
-                            friend.nextHarvestType = 1;
-                        }
-                    }
-                }
+    //              if (nextharvestFarm) {
+    //                 console.log('2222');
+    //                 console.log('nextharvestFarm',nextharvestFarm);
+    //                 friend.nextHavestTime = nextharvestFarm.harvestTime;
+    //                 friend.nextHarvestType = 2;
+    //                 if (nextHarvestland) {
+    //                     if (nextHarvestland.harvestTime < nextharvestFarm.harvestTime) {
+    //                         console.log('2222');
+    //                         friend.nextHavestTime = nextHarvestland.harvestTime;
+    //                         friend.nextHarvestType = 1;
+    //                     }
+    //                 }
+    //             }
 
-                displayFriends.push(friend);
+    //             displayFriends.push(friend);
+    //         }
+    //     }
+    // }
+    // console.log('displayFriends',displayFriends);
+    reply({"message":"获取用户好友列表成功","statusCode":107,"status":true,"resource":displayFriends,sum:sum});
+}
+
+async function friendHarvestStatuts(request,friend) {
+    await landService.updateUserLandGrows(request,friend);
+    await farmService.updateUserLandGrows(request,friend);
+    var harvestLands = await dao.find(request,'land',{user_id:friend._id + "",status:3},{},{harvestTime:1});
+    harvestLands = await userService.noStealHarvestLands(request,harvestLands);
+    var harvestFarms = await dao.find(request,'farm',{user_id:friend._id + "",status:3},{},{harvestTime:1});
+    harvestFarms = await userService.noStealHarvestFarms(request,harvestFarms);
+    friend.nextHavest = 0;     // 下次有没有红包收获
+    friend.nextHavestTime = -1; // 下次收获的时间
+    friend.land_id = "";
+    // friend.nextHarvestType = -1; //  -1 下次没有成熟 1 下次成熟的是土地 2 下次成熟的是牧场
+    // 牧场成熟
+    if (harvestFarms.length > 0 && harvestLands.length <= 0) {
+        friend.nextHavest = 1;
+        friend.nextHavestTime = harvestFarms[0].harvestTime;
+    } else if (harvestFarms.length <= 0 && harvestLands.length > 0) {
+        friend.nextHavest = 1;
+        friend.nextHavestTime = harvestLands[0].harvestTime;
+    }else if (harvestFarms.length > 0 && harvestLands.length > 0) {
+        friend.nextHavest = 1;
+        friend.nextHavestTime = harvestFarms[0].harvestTime < harvestLands[0].harvestTime ? harvestFarms[0].harvestTime : harvestLands[0].harvestTime;
+    } else {
+        friend.nextHavest = 0;
+        var nextHarvestLands = await dao.find(request,'land',{user_id:friend._id + "",status:2},{},{harvestTime:1});
+        var nextHarvestFarms = await dao.find(request,'farm',{user_id:friend._id + "",status:2},{},{harvestTime:1});
+        if (nextHarvestLands.length > 0 && nextHarvestFarms.length <= 0) {
+            friend.nextHavest = 0;
+            friend.nextHavestTime = nextHarvestLands[0].harvestTime;
+        }  else if (nextHarvestFarms.length <= 0 && nextHarvestLands.length > 0) {
+            friend.nextHavest = 0;
+            friend.nextHavestTime = nextHarvestFarms[0].harvestTime;
+        }else if (nextHarvestFarms.length > 0 && nextHarvestLands.length > 0) {
+            friend.nextHavest = 0;
+            friend.nextHavestTime = nextHarvestFarms[0].harvestTime < nextHarvestLands[0].harvestTime ? nextHarvestFarms[0].harvestTime : nextHarvestLands[0].harvestTime;
+        }
+    }
+}
+
+
+exports.noStealHarvestLands = async function (request,lands) { 
+    var user = request.auth.credentials;
+    var noStealedLands =  [];
+    if (lands.length > 0) {
+        for (var index in lands) {
+            var land = lands[index];
+            console.log('where',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:1});
+            var stealRecords = await dao.find(request,'stealRecord',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:1});
+            console.log('111stealRecords',stealRecords);
+            
+            if (stealRecords.length <= 0) {
+                noStealedLands.push(land);
             }
         }
     }
-    console.log('displayFriends',displayFriends);
-    reply({"message":"获取用户好友列表成功","statusCode":107,"status":true,"resource":displayFriends,sum:sum});
+    return noStealedLands;
+}
+
+exports.noStealHarvestFarms = async function (request,farms) { 
+    var user = request.auth.credentials;
+    var noStealedfarms =  [];
+    if (farms.length > 0) {
+        for (var index in farms) {
+            var land = farms[index];
+            console.log('where',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:1});
+            var stealRecords = await dao.find(request,'stealRecord',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:2});
+            console.log('222stealRecords',stealRecords);
+            if (stealRecords.length <= 0) {
+                noStealedfarms.push(land);
+            }
+        }
+    }
+    return noStealedfarms;
+}
+async function friendCommisionStatuts(request,friend) { 
+    var frinedCommitonResult = await commissionStatus(request,friend);
+    friend.commisonCanSteal = frinedCommitonResult.canSteal;
+}
+
+
+const commissionStatus =  async function(request,user) { 
+    var queryResult = await commissionQuery(request,user);
+    if (queryResult.canSteal == false) {
+        return {canSteal:false,commission:queryResult.commission}
+    }
+    var systemSet = await dao.findOne(request,'systemSet',{});
+    var todayStealedCount = systemSet.yjMaxStledADay - 1;
+    if (todayStealedCount >= systemSet.yjMaxStledADay) {
+        return {canSteal:false,commission:queryResult.commission}
+    }
+    return queryResult;
+}
+
+const commissionQuery = async function(request,user) { 
+    return {canSteal:true,commission:300}
 }
 exports.friends1 = async function(request,reply) {
     var user = request.auth.credentials;

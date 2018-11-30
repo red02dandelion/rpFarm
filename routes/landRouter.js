@@ -239,10 +239,7 @@ module.exports = [
                     'authorization': Joi.string().required().description('需要加token请求头')
                 }).unknown(),
                 params:{
-                     id:Joi.string().required().description("土地ID"),
-                },
-                payload:{
-                        type:Joi.number().required().description("土地类型")
+                     id:Joi.string().required().description("用户ID"),
                 }
             }
         }

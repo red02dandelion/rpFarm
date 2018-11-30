@@ -502,6 +502,34 @@ module.exports = [
     },
 
 
+     // 动物列表
+    {
+        method:'POST',
+        path:'/admin/animals/{page}/{size}',
+        handler:adminService.animalList,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '管理员植物列表',
+            notes: '管理员植物列表API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    page:Joi.number().required().description("页数"),
+                    size:Joi.number().required().description('条数')
+                },
+                payload:{
+                    where:Joi.object().description('筛选条件')
+                }
+            }
+        }
+    },
+
 
     // 植物详情
     {
@@ -527,9 +555,87 @@ module.exports = [
         }
     },
 
+    // 动物详情
+    {
+        method:'GET',
+        path:'/admin/animal/{id}',
+        handler:adminService.plantDetail,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '管理员植物列表',
+            notes: '管理员植物列表API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("页数")
+                }
+            }
+        }
+    },
+
        {
         method:'PUT',
         path:'/admin/plant/{id}',
+        handler:adminService.putPlant,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope:[ 'ADMIN', "SYSTEM_SET_EDIT"]
+            },
+            description: '修改植物',
+            notes: '修改植物API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description('道具编号')
+                },
+                payload:{
+                    name:Joi.string().description('植物名称'),
+                    sortFlag:Joi.number().description('解锁顺序'),
+                    img:Joi.string().description('图片'),
+                    img1:Joi.string().description('无底框图片'),
+                    qualityId:Joi.number().required().default(0).description('品质等级'),
+                    animationId:Joi.number().required().description('动效ID'),
+                    unlockTime:Joi.number().description('解锁次数'),
+                    everyPrice:Joi.number().description('每次解锁花费金币'),
+                    plantPrice:Joi.number().description('种植价格'),
+                    needProp:Joi.number().description('种植所需道具ID'),
+                    needCount:Joi.number().description('种植所需道具数量'),
+                    growTime:Joi.number().description('成熟时间（s）'),
+                    expirence:Joi.number().description('经验收益'),
+                    firHb:Joi.number().description('首次种植获得红包额'),
+                    hbRate:Joi.number().description('红包掉落概率'),
+                    minHb:Joi.number().description('最低红包收益'),
+                    maxHb:Joi.number().description('最高红包收益'),
+                    minEssence:Joi.number().description('最低植物精华收益'),
+                    maxEssence:Joi.number().description('最高植物精华收益'),
+                    minGold:Joi.number().description('最低金币收益'),
+                    maxGold:Joi.number().description('最高金币收益'),
+                    stdExeRate:Joi.number().description('偷走经验几率'),
+                    stdExeMaxPp:Joi.number().description('偷走经验比例上限'),
+                    stdHbRate:Joi.number().description('偷走红包几率'),
+                    stdHbMaxPp:Joi.number().description('偷走红包比例上限'),
+                    stdEssRate:Joi.number().description('偷走精华几率'),
+                    stdEssMaxPp:Joi.number().description('偷走精华比例上限'),
+                    stdGoldMaxPp:Joi.number().description('偷走金币比例上限'),
+                    dropId:Joi.number().description('掉落组ID')
+                }
+            }
+        }
+    },
+
+     {
+        method:'PUT',
+        path:'/admin/animal/{id}',
         handler:adminService.putPlant,
         config:{
              auth: {
@@ -633,7 +739,59 @@ module.exports = [
         }
     },
 
-                  // 删除商品
+     {
+        method:'POST',
+        path:'/admin/animal',
+        handler:adminService.addPlant,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope:[ 'ADMIN', "SYSTEM_SET_EDIT"]
+            },
+            description: '修改植物',
+            notes: '修改植物API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+    
+                payload:{
+                    name:Joi.string().description('植物名称'),
+                    sortFlag:Joi.number().required().description('解锁顺序'),
+                    img:Joi.string().description('图片'),
+                    img1:Joi.string().description('无底框图片'),
+                    qualityId:Joi.number().description('品质等级'),
+                    animationId:Joi.number().required().description('动效ID'),
+                    unlockTime:Joi.number().default(0).description('解锁次数'),
+                    everyPrice:Joi.number().description('每次解锁花费金币'),
+                    plantPrice:Joi.number().description('种植价格'),
+                    needProp:Joi.number().description('种植所需道具ID'),
+                    needCount:Joi.number().description('种植所需道具数量'),
+                    growTime:Joi.number().description('成熟时间（s）'),
+                    expirence:Joi.number().description('经验收益'),
+                    firHb:Joi.number().description('首次种植获得红包额'),
+                    hbRate:Joi.number().description('红包掉落概率'),
+                    minHb:Joi.number().description('最低红包收益'),
+                    maxHb:Joi.number().description('最高红包收益'),
+                    minEssence:Joi.number().description('最低植物精华收益'),
+                    maxEssence:Joi.number().description('最高植物精华收益'),
+                    minGold:Joi.number().description('最低金币收益'),
+                    maxGold:Joi.number().description('最高金币收益'),
+                    stdExeRate:Joi.number().description('偷走经验几率'),
+                    stdExeMaxPp:Joi.number().description('偷走经验比例上限'),
+                    stdHbRate:Joi.number().description('偷走红包几率'),
+                    stdHbMaxPp:Joi.number().description('偷走红包比例上限'),
+                    stdEssRate:Joi.number().description('偷走精华几率'),
+                    stdEssMaxPp:Joi.number().description('偷走精华比例上限'),
+                    stdGoldMaxPp:Joi.number().description('偷走金币比例上限'),
+                    dropId:Joi.number().description('掉落组ID')
+                }
+            }
+        }
+    },
+
+                  // 删除植物
     {
         method:'DELETE',
         path:'/admin/plant/{id}',
@@ -658,6 +816,33 @@ module.exports = [
             }
         }
     },
+
+                   // 删除动物
+    {
+        method:'DELETE',
+        path:'/admin/animal/{id}',
+        handler:adminService.delPlant,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '删除系统公告',
+            notes: '删除系统公告API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+    
+                params:{
+                    id:Joi.string().required().description("id"),
+                 
+                }
+            }
+        }
+    },
+
 
     // 掉落组
     {

@@ -556,56 +556,23 @@ exports.plt_steal = async function(request,reply){
 
 exports.steal = async function(request,reply){ 
     var user = request.auth.credentials;
-    var land;
-    if (request.payload.type == 1) {
-        land = await dao.findOne(request,'land',{_id:request.params.id});
-    } else if (request.payload.type == 2) {
-        land = await dao.findOne(request,'farm',{_id:request.params.id});
-    }
-    if (!land) {
+    var friend = await dao.findById(request,'user',request.params.id);
+    if (!friend) {
         reply({
-                "message":"无此土地！",
+                "message":"无此用户！",
                 "statusCode":102,
                 "status":false
         });
 
         return ;
     }
-    var stealFromUser = await dao.findById(request,'user',land.user_id);
-    if (stealFromUser.username == user.username) {
+    if (friend.username == user.username) {
         reply({
                 "message":"自己的土地无法偷取！",
                 "statusCode":102,
                 "status":false
         });
         
-        return ;
-    }
-    console.log('111land.status',land.status);
-    // await landService.updateUserLandGrows(request,stealFromUser);
-    if (request.payload.type == 1) {
-        await landService.updateGrowStataus(request,land);
-    } else if (request.payload.type == 2) {
-        await farmService.updateGrowStataus(request,land);
-    }
-    console.log('2222land.status',land.status);
-    if (land.status != 3){
-        reply({
-                "message":"植物还未成熟！",
-                "statusCode":102,
-                "status":false
-        });
-       
-        return ;
-    }
-    var stealRecords = await dao.find(request,'stealRecord',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:request.payload.type});
-    if (stealRecords.length > 0) {
-        reply({
-                "message":"该次成熟已被偷过。",
-                "statusCode":102,
-                "status":false
-        });
-
         return ;
     }
 
@@ -620,16 +587,73 @@ exports.steal = async function(request,reply){
         return ;
     }
     await dao.updateIncOne(request,'user',{_id:user._id + ""},{power:-system2.tlStlHbUse});
+    await landService.updateUserLandGrows(request,friend);
+    await farmService.updateUserLandGrows(request,friend);
+    var harvestLands = await dao.find(request,'land',{user_id:friend._id + "",status:3},{},{harvestTime:1});
+    console.log('111harvestLands',harvestLands);
+    harvestLands = await userService.noStealHarvestLands(request,harvestLands);
+    console.log('222harvestLands',harvestLands);
+    var harvestFarms = await dao.find(request,'farm',{user_id:friend._id + "",status:3},{},{harvestTime:1});
+    console.log('111harvestFarms',harvestFarms);
+    harvestFarms = await userService.noStealHarvestFarms(request,harvestFarms);
+    console.log('222harvestFarms',harvestFarms);
+    var data = {};
+    data.gold = 0;
+    data.ess = 0;
+    data.experience = 0;
+    data.hb = 0;
+    if (harvestLands.length > 0) {
+        for (var index in harvestLands) {
+            var land = harvestLands[index];
+            if (!land) {
+                continue;
+            }
+            if (land.status != 3){ 
+                continue;
+            }
+            await stealLand(request,land,data,1,friend);
+        }
+    }
+
+    if (harvestFarms.length > 0) {
+        for (var index in harvestFarms) {
+            // 偷取
+            var land = harvestFarms[index];
+            if (!land) {
+                continue;
+            }
+            if (land.status != 3){ 
+                continue;
+            }
+             await stealLand(request,land,data,2,friend);
+        }
+    }
+    console.log('data',data);
+    // 更新用户数据
+    await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:data.gold,experience:data.experience,plt_sessence:data.ess,hb:data.hb});
+    reply({
+                "message":"偷取成功，获得金币"+data.gold+'个，植物精华'+ data.ess + "个，经验"+data.experience + ",红包" + data.hb +"元。",
+                "statusCode":101,
+                "status":true,
+                "resource":data
+    });
+}
+
+const stealLand = async function (request,land,data,type,stealFromUser) { 
+    var user = request.auth.credentials;
+    // 偷取
     // 走偷取逻辑
     var harvest = await dao.findOne(request,'harvest',{grow_id:land.grow_id + ""});
-    var plant;
-    if (request.payload.type == 1) {
-        plant =  await dao.findById(request,'plant',land.plt_id + "");
-    } else if (request.payload.type == 2) {
-        plant = await dao.findById(request,'animal',land.plt_id);
+    var plant ;
+    if (type == 1) {
+        plant  = await dao.findById(request,'plant',land.plt_id + "");;  
+    } else if (type == 2) {
+        plant  = await dao.findById(request,'animal',land.plt_id + "");;  
     }
-    
-    
+    if (!plant) {
+        console.log('plant',plant);
+        return;
+    }
     var experience = 0;
     var stdExeSuccessRadm = Math.random();
     // console.log('plant',plant);
@@ -671,14 +695,12 @@ exports.steal = async function(request,reply){
 
     var gold = 0;
     var canStdGold = harvest.priGold * plant.stdGoldMaxPp;
-    var minHarvGold = harvest.gold - canStdGold;
+    var minHarvGold = harvest.priGold - canStdGold;
     if (harvest.gold > minHarvGold) {
         // console.log('gold',gold);
         gold = Math.round((harvest.gold - minHarvGold) * Math.random());
     }
-   
-    // 更新用户数据
-    await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:gold,experience:experience,plt_sessence:ess,hb:hb});
+    
     var stealRecord = {};
     stealRecord.username = user.username;
     stealRecord.user_id = user._id + '';
@@ -693,25 +715,17 @@ exports.steal = async function(request,reply){
     stealRecord.land_id = land._id + "";
     stealRecord.grow_id = land.grow_id;
     stealRecord.harvest_id = harvest._id + "";
-    stealRecord.type = request.payload.type;
-    await dao.save(request,'stealRecrod',stealRecord);
-    // 更新收益
+    stealRecord.type = type;
+    await dao.save(request,'stealRecord',stealRecord);
+    
+    data.gold =  data.gold +  gold;
+    data.ess = data.ess + ess;
+    data.experience = data.experience + experience;
+    data.hb = data.hb + hb;
+     // 更新收益
     await dao.updateIncOne(request,'harvest',{_id:harvest._id + ""},{gold:-gold,experience:-experience,plt_sessence:-ess,hb:-hb});
-    var data = {};
-    data.gold = gold;
-    data.ess = ess;
-    data.experience = experience;
-    data.hb = hb;
-    console.log('data',data);
-    reply({
-                "message":"偷取成功，获得金币"+gold+'个，植物精华'+ ess + "个，经验"+experience + ",红包" + hb +"元。",
-                "statusCode":101,
-                "status":true,
-                "resource":data
-    });
+    console.log('-----data------',data);
 }
-
-
 exports.harvest = async function (request,reply) { 
     var user = request.auth.credentials;
     var land = await dao.findById(request,'land',request.params.id);
