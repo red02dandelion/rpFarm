@@ -393,6 +393,14 @@ exports.harvestPreview = async function (request,reply) {
     var user = request.auth.credentials;
     var land = await dao.findById(request,'land',request.params.id);
     // console.log('land',land);
+    if (!land) {
+        reply({
+                "message":"土地不存在!",
+                "statusCode":108,
+                "status":false
+        });
+        return;
+    }
     await landService.updateGrowStataus(request,land);
     // console.log('land2222',land);
     if (land.status != 3) {
@@ -631,6 +639,24 @@ exports.steal = async function(request,reply){
     console.log('data',data);
     // 更新用户数据
     await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:data.gold,experience:data.experience,plt_sessence:data.ess,hb:data.hb});
+    
+    // 总偷取记录
+    var stealRecord = {};
+    stealRecord.username = user.username;
+    stealRecord.user_id = user._id + '';
+    stealRecord.experience = data.experience;
+    stealRecord.plt_ess = data.ess;
+    stealRecord.gold = data.gold;
+    stealRecord.hb = data.hb;
+    stealRecord.createTime = new Date().getTime();
+    stealRecord.stealFrom = friend.username;
+    stealRecord.fromId = friend._id  + "";
+    if (data.hb > 0) {
+        stealRecord.hbFlag = 1;
+    }
+    stealRecord.friendRead = 0;
+    await dao.save(request,'stealTotalRecord',stealRecord);
+
     reply({
                 "message":"偷取成功，获得金币"+data.gold+'个，植物精华'+ data.ess + "个，经验"+data.experience + ",红包" + data.hb +"元。",
                 "statusCode":101,
@@ -638,7 +664,10 @@ exports.steal = async function(request,reply){
                 "resource":data
     });
 }
-
+exports.stealNews = async function(request,reply){  
+    var user = request.auth.credentials;
+    var 
+}
 const stealLand = async function (request,land,data,type,stealFromUser) { 
     var user = request.auth.credentials;
     // 偷取
@@ -729,6 +758,14 @@ const stealLand = async function (request,land,data,type,stealFromUser) {
 exports.harvest = async function (request,reply) { 
     var user = request.auth.credentials;
     var land = await dao.findById(request,'land',request.params.id);
+    if (!land) {
+        reply({
+                "message":"土地不存在!",
+                "statusCode":108,
+                "status":false
+        });
+        return;
+    }
     await landService.updateGrowStataus(request,land);
     // land = await dao.findById(request,'land',request.params.id);
     if (land.status != 3) {
