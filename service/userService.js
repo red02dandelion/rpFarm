@@ -244,7 +244,7 @@ exports.serverUpto = async function(request,reply){
     }, async function (err, data, res) {
     if (err) {
         // console.log('用户信息同步失败');
-        // console.log('err',err);
+        console.log('err',err);
         reply({"message":"用户信息同步失败","statusCode":102,"status":false});
         // throw err; // you need to handle error
         return;
@@ -255,7 +255,7 @@ exports.serverUpto = async function(request,reply){
 
     
         if (jsonData.c != 200) {
-          
+            console.log(data.toString());
             reply({"message":"用户信息同步失败","statusCode":102,"status":false});
             return;
         }

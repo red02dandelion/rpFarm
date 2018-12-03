@@ -500,7 +500,8 @@ exports.plt_steal = async function(request,reply){
 
     var hb = 0;
     var hbStdSuccessRadm = Math.random();
-    // console.log('hbStdSuccessRadm',hbStdSuccessRadm);
+    console.log('hbStdSuccessRadm',hbStdSuccessRadm);
+    console.log('plant.stdHbRate',plant.stdHbRate);
     if (hbStdSuccessRadm <= plant.stdHbRate) {
         var canStdHb = harvest.priHb * plant.stdHbMaxPp;
         var minHarvHb = harvest.priHb - canStdHb;
@@ -610,6 +611,7 @@ exports.steal = async function(request,reply){
     data.ess = 0;
     data.experience = 0;
     data.hb = 0;
+    data.recordIds = [];
     if (harvestLands.length > 0) {
         for (var index in harvestLands) {
             var land = harvestLands[index];
@@ -644,13 +646,19 @@ exports.steal = async function(request,reply){
     var stealRecord = {};
     stealRecord.username = user.username;
     stealRecord.user_id = user._id + '';
+    stealRecord.userAvatar = user.avatar;
+    stealLand.userName = user.name;
+    stealLand.userNick = user.nickname;
     stealRecord.experience = data.experience;
     stealRecord.plt_ess = data.ess;
     stealRecord.gold = data.gold;
     stealRecord.hb = data.hb;
     stealRecord.createTime = new Date().getTime();
     stealRecord.stealFrom = friend.username;
+    stealRecord.stealFromName = friend.name;
+    stealRecord.stealFromNick = friend.nickname;
     stealRecord.fromId = friend._id  + "";
+    stealRecord.stealFrom = friend.avatar;
     if (data.hb > 0) {
         stealRecord.hbFlag = 1;
     }
@@ -658,16 +666,84 @@ exports.steal = async function(request,reply){
     await dao.save(request,'stealTotalRecord',stealRecord);
 
     reply({
-                "message":"偷取成功，获得金币"+data.gold+'个，植物精华'+ data.ess + "个，经验"+data.experience + ",红包" + data.hb +"元。",
-                "statusCode":101,
-                "status":true,
-                "resource":data
+            "message":"偷取成功，获得金币"+data.gold+'个，植物精华'+ data.ess + "个，经验"+data.experience + ",红包" + data.hb +"元。",
+            "statusCode":101,
+            "status":true,
+            "resource":data
     });
 }
 exports.stealNews = async function(request,reply){  
     var user = request.auth.credentials;
-    var 
+    var stealedTotalRecord = await dao.find(request,'stealTotalRecord',{fromId:user._id + "",friendRead:0});
+    var news ;
+    if (stealedTotalRecord.length >0) {
+        news = {};
+        news.hb = 0;
+        news.stealers = [];
+        news.ttRecordIds = [];
+        for (var index in stealedTotalRecord) {
+             var stealedRecord = stealedTotalRecord[index];
+             news.hb = news.hb + stealedRecord.hb;
+             var stealer = {};
+             stealer.user_id = stealedRecord.user_id;
+             stealer.avatar = stealedRecord.userAvatar;
+             stealer.name = stealedRecord.userName;
+             stealer.nickname = stealedRecord.userNick;
+             stealer.username = stealedRecord.username;
+            //  news.stealers.push(stealer);
+             await pushUserNoRepeat(news.stealers,stealer);
+             news.ttRecordIds.push(stealedRecord._id + "");
+         }
+    }
+    if (news == null || news.hb <= 0 ){
+        reply({
+                "message":"无人偷取到您的红包！",
+                "statusCode":108,
+                "status":false
+        });
+       
+        return ;
+    } else {
+        reply( {
+                "message":"查询成功！",
+                "statusCode":107,
+                "status":true,
+                "news":news
+        });
+    }
 }
+async function pushUserNoRepeat(users,user) {
+    if (users.length > 0) {
+        var hasNewUser = false;
+        for (var index in users) {
+            var temUse = users[index];
+            if (temUse.username == user.username) {
+                hasNewUser = true;
+                break;
+            }
+        }
+        if (hasNewUser == false) {
+            users.push(user);
+        }
+    } else {
+        users.push(user);
+    }
+}
+exports.readNews = async function(request,reply){
+    var user = request.auth.credentials;
+    if (request.payload.ids.length > 0) {
+        for (var index in request.payload.ids) {
+            var id = request.payload.ids[index];
+            await dao.updateOne(request,'stealTotalRecord',{_id:id + ""},{friendRead:1});
+        }
+    }
+    reply({
+        "message":"更新成功！",
+        "statusCode":101,
+        "status":true
+    });
+}
+// 
 const stealLand = async function (request,land,data,type,stealFromUser) { 
     var user = request.auth.credentials;
     // 偷取
@@ -745,12 +821,13 @@ const stealLand = async function (request,land,data,type,stealFromUser) {
     stealRecord.grow_id = land.grow_id;
     stealRecord.harvest_id = harvest._id + "";
     stealRecord.type = type;
-    await dao.save(request,'stealRecord',stealRecord);
+    var saveResult = await dao.save(request,'stealRecord',stealRecord);
     
     data.gold =  data.gold +  gold;
     data.ess = data.ess + ess;
     data.experience = data.experience + experience;
     data.hb = data.hb + hb;
+    data.recordIds.push(saveResult.ops[0]._id + "");
      // 更新收益
     await dao.updateIncOne(request,'harvest',{_id:harvest._id + ""},{gold:-gold,experience:-experience,plt_sessence:-ess,hb:-hb});
     console.log('-----data------',data);

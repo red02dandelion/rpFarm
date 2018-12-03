@@ -244,6 +244,52 @@ module.exports = [
             }
         }
     },
+
+        // 偷红包
+    {
+        method:'GET',
+        path:'/plant/stealNews',
+        handler:landService.stealNews,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '偷取',
+            notes: '偷取Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
+       // 阅读
+    {
+        method:'POST',
+        path:'/plant/steal/read',
+        handler:landService.readNews,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '阅读',
+            notes: '阅读Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    ids:Joi.array().required().description('阅读偷取记录id')
+                }
+            }
+        }
+    },
     // 分享解锁土地
      {
         method:'POST',
