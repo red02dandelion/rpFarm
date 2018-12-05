@@ -56,5 +56,30 @@ module.exports = [
                 }
             }
         }
+    },
+     // 随机用户
+    {
+        method:'POST',
+        path:'/cathSlave/randusers',
+        handler:catchSlaveService.randUsers,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '工作状态',
+            notes: '工作状态Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                     count:Joi.number().required().description("用户数量")
+                }
+            }
+        }
     }
+
 ]

@@ -214,9 +214,33 @@ exports.randUsers = async function(request,reply){
             var temUser = findRes[index];
          
         }
-        reply({"message":"获取茶友列表成功","statusCode":107,"status":true,"resource":findRes,"sum":findRes.length});
+        reply({"message":"获取用户列表成功","statusCode":107,"status":true,"resource":findRes,"sum":findRes.length});
         return ;
     }
+    var incnos = [];
+    var arr = [];
+    while(arr.length < count){
+        var number = Math.floor(Math.random()*findRes.length);
+        if(incnos.length == 0){
+            incnos.push(number);
+            arr.push(findRes[number]);
+        } else {
+            var hasNumber = false;
+            for(var i=0;i<incnos.length;i++){
+                if(number == incnos[i]){
+                    hasNumber = true;
+                    break;
+                }
+            }
+            if(hasNumber == false){
+                arr.push(findRes[number]);
+                incnos.push(number); 
+            }
+        }
+        
+    }
+    reply({"message":"获取用户列表成功","statusCode":107,"status":true,"resource":findRes,"sum":findRes.length});
+
 }
 
 const rescueQuery = function(request,catch_id) {
