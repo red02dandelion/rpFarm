@@ -3,6 +3,7 @@ const dao = require("../dao/dao");
 const landService = require("../service/landService");
 const farmService = require("../service/farmService");
 var userService = require("../service/userService");
+const settings = require('../settings');
 // 植物标签列表 
 exports.tags = async function (request,reply) {
     var user = request.auth.credentials; 
@@ -1020,6 +1021,110 @@ exports.shareLand = async function(request,reply){
     });
     return;
 }
+
+
+
+exports.shareProgress = async function(request,reply){ 
+    var shareProgress = await dao.findOne(request,'shareProgress',{land_id:request.params.id});
+    if (!shareProgress) {
+        shareProgress = {};
+        shareProgress.land_id = request.params.id;
+        shareProgress.inviteCount = 0;
+        shareProgress.createTime = new Date().getTime();
+        shareProgress.status = 0; // 0 解锁中 1 解锁完成
+        await dao.save(request,'shareProgress',shareProgress); 
+    }
+    shareProgress.inviteCount = await landUnlockInviteQuery(request,request.params.id);
+    reply({
+        "message":"查询成功!",
+        "statusCode":107,
+        "status":true,
+        "resource":shareProgress
+    });
+}
+exports.updateSharelands = async function(request,reply){  
+    var user = request.auth.credentials;
+    var lands = await dao.find(request,'land',{user_id:user._id + "",status:0});
+    
+    if (lands.length > 0) {
+        for (var index in lands) {
+            var land = lands[index];
+            var landUnlock = await dao.findOne(request,'landUnlocks',{landCode:land.code});
+            if (landUnlock.cdtTpye == 2) {
+                var needInvite = await landUnlockInviteQuery(request,land._id + "");
+                if (needInvite >= landUnlock.inviteCount) {
+                    await dao.updateOne(request,'land',{_id:land._id + ""},{status:1,unlocked:1});
+                }
+            }
+        }
+    }
+
+    var farms = await dao.find(request,'farm',{user_id:user._id + "",status:0});
+    
+    if (farms.length > 0) {
+        for (var index in farms) {
+            var land = farms[index];
+            var landUnlock = await dao.findOne(request,'farmUlcCdts',{landCode:land.code});
+            if (landUnlock.cdtTpye == 2) {
+                var needInvite = await landUnlockInviteQuery(request,land._id + "");
+                if (needInvite >= landUnlock.inviteCount) {
+                    await dao.updateOne(request,'farm',{_id:land._id + ""},{status:1,unlocked:1});
+                }
+            }
+        }
+    }
+    reply({
+        "message":"更新成功!",
+        "statusCode":101,
+        "status":true
+    });
+}
+exports.shareSettings = async function(request,reply){ 
+    var shareSettings;
+    if (request.payload.id == -1) {
+         shareSettings = await dao.findOne(request,'shareSettings',{});
+    } else {
+         shareSettings = await dao.findOne(request,'shareSettings',{id:request.payload.id});
+    }
+   
+     reply({
+        "message":"查询成功!",
+        "statusCode":107,
+        "status":true,
+        resource:shareSettings
+    });
+}
+const landUnlockInviteQuery = function(request,land_id) {
+    var user = request.auth.credentials;
+    var req  = require('urllib-sync').request;
+    var path = settings.host + 'jmmall.farm.register.count';
+    var tugScene = "land-" + land_id;
+    var result = req(path,{
+        method: 'POST',
+        headers: {
+            "Content-Type": "application/json"
+        },
+        data: {
+                "h": {
+                        "t": user.token //当前登录用户token
+                },
+                "d": {
+                    "a": 1,
+                    "scenes": [tugScene]
+                }
+            }
+
+        });
+    console.log('result.data',result.data.toString());
+    var data = JSON.parse(result.data.toString());
+    if (data.c != 200) {
+        return 0;
+    } 
+    console.log('land invite count',data.d.tugScene);
+    return data.d.tugScene;
+} 
+
+
 // 根据合成记录返回植物解锁状态
 exports.hasPlantsUpdate = async function (request,plants,user) { 
     for (var index in plants) {

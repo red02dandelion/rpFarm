@@ -314,4 +314,75 @@ module.exports = [
             }
         }
     },
+
+     // 更新邀请土地状态
+     {
+        method:'POST',
+        path:'/plant/land/share/put',
+        handler:landService.updateSharelands,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '更新土地邀请解锁状态',
+            notes: '更新土地邀请解锁状态api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
+
+      // 分享进度查询
+     {
+        method:'GET',
+        path:'/plant/land/share/{id}',
+        handler:landService.shareProgress,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '分享进度查询',
+            notes: '分享进度查询Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                     id:Joi.string().required().description("土地ID")
+                }
+            }
+        }
+    },
+      // 分享配置查询
+     {
+        method:'POST',
+        path:'/plant/land/share/settings',
+        handler:landService.shareSettings,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '解锁查询',
+            notes: '解锁查询Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    id:Joi.number().required().description('分享功能ID')
+                }
+            }
+        }
+    }
 ]
