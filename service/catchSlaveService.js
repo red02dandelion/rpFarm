@@ -82,6 +82,76 @@ exports.cathSlave = async function(request,reply){
     }
     reply({"message":"抓捕成功！","statusCode":107,"status":true,"resource":fightResult});    
 }
+
+exports.myWorkStatus = async function(request,reply){ 
+    var user = request.auth.credentials;
+    var workStatusess = [];
+    var workAreas = await dao.find(request,'workArea',{});
+    var catchRecords = await dao.find(request,'catchRecord',{user_id:user._id + ""});
+    if (catchRecords.length > 0) {
+        for (var index in catchRecords) {
+            var catchRecord = catchRecords[index];
+            await updatecatchRecord(request,catchRecord);
+        }
+    }
+    for (var index in workAreas) {
+        var workStatus = {};
+        var workArea = workAreas[index];
+        workStatus.unlockClass = workArea.unlockClass;
+        var workProductDash = await dao.findOne(request,'workProductDash',{user_id:user._id + "",work_id:workArea.id});
+        if (!workProductDash) {
+            workProductDash.user_id = catchRecord.user_id;
+            workProductDash.username = catchRecord.user.username;
+            workProductDash.experience = 0;
+            workProductDash.gold = 0;
+            workProductDash.props = [];
+            workProductDash.totalExperience = 0;
+            workProductDash.totalGold = 0;
+            workProductDash.thisFixedTime = 0;
+            workProductDash.thisDropTime = 0;
+            workProductDash.totalFixedTime = 0;
+            workProductDash.totalDropTime = 0;
+            workProductDash.work_id = workArea.id;
+            await dao.save(request,'workProductDash',workProductDash);
+        }
+        workStatus.work_id = workArea.id;
+        workStatus.name = workArea.name;
+        workStatus.workProductDash = workProductDash;
+        var chatchRecord = await dao.findOne(request,'');
+        workStatusess.push(workStatus);
+    }
+    reply({"message":"查询成功！","statusCode":107,"status":true,"resource":workStatusess});    
+}
+exports.myCatched = async function(request,reply){ 
+    var user = request.auth.credentials;
+    var catchRecord = await dao.findOne(request,"catchRecord",{slave_id:user._id + "",endStatus:0});
+    if (!catchRecord) {
+        reply({"message":"查询成功！","statusCode":107,"status":true,"resource":{catchedStatus:false,master:null}});    
+        return ;
+    }
+    if (catchRecord) {
+        await updatecatchRecord(request,catchRecord);
+    }
+    if (catchRecord.endStatus == 0) {
+        var master = {};
+        master.username = catchRecord.username;
+        master.nickname = catchRecord.nickname;
+        master.avatar = catchRecord.avatar;
+        master.work_id = catchRecord.work_id;
+        reply({"message":"查询成功！","statusCode":107,"status":true,"resource":{catchedStatus:true,master:master}});    
+
+    } else {
+        reply({"message":"查询成功！","statusCode":107,"status":true,"resource":{catchedStatus:false,master:null}});    
+        return ;
+    }
+}
+exports.harvestMyWork = async function(request,reply){ 
+    var user = request.auth.credentials;
+    var workArea = await dao.findOne(request,'workArea',{id:request.payload.work_id});
+    if (user.class < workArea.unlockClass) {
+         reply({"message":"查询成功！","statusCode":107,"status":true,"resource":{catchedStatus:true,master:master}}); 
+    }
+}
 // 更新记录的状态和收益
 async function updatecatchRecord(request,catchRecord){ 
     var systemSet = await dao.findOne(request,'systemSet',{});

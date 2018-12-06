@@ -29,11 +29,12 @@ module.exports = [
             }
         }
     },
-    // 工作状态
-    {
-        method:'POST',
-        path:'/cathSlave/cath/{id}',
-        handler:catchSlaveService.cathSlave,
+
+    
+     {
+        method:'GET',
+        path:'/cathSlave/workStatus',
+        handler:catchSlaveService.myWorkStatus,
         config:{
             //拦截器
             auth: {
@@ -42,18 +43,32 @@ module.exports = [
             },
             description: '工作状态',
             notes: '工作状态Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
+
+     {
+        method:'GET',
+        path:'/cathSlave/myCatched',
+        handler:catchSlaveService.myCatched,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '充值',
+            notes: '充值Api',
             //tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                payload:{
-                     user_id:Joi.string().required().description("用户ID"),
-                     work_id:Joi.number().required().description("工位ID")
-                },
-                params:{
-                     id:Joi.number().required().description("工位ID")
-                }
+                }).unknown()
             }
         }
     },
