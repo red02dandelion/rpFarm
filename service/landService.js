@@ -595,6 +595,19 @@ exports.harvest = async function (request,reply) {
     console.log('2222harvest',harvest)
     // 更新用户收益
     await dao.updateIncOne(request,'user',{_id:user._id + ""},harvest);
+    var timeStamp = new Date().getTime();
+    if (harvest.hb > 0) {
+        var hbGetRecord = {};
+        hbGetRecord.createTime = timeStamp;
+        hbGetRecord.monthString = formatDateMonth(new Date(timeStamp));
+        hbGetRecord.hb = harvest.hb;
+        hbGetRecord.type = 1; // 1 种地收获 2 偷取红包 3 红包找回 4 
+        hbGetRecord.user_id = user._id + "";
+        hbGetRecord.username = user.username;
+        hbGetRecord.nickname = user.nickname;
+        hbGetRecord.name = user.name;
+        await dao.save(request,'hbGetRecord',hbGetRecord);
+    }
     // 更新土地
     await dao.updateOne(request,'land',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",animationId:-1,pltId:0});
     console.log('4444');
@@ -797,4 +810,17 @@ exports.updateUserLandGrows = async function (request,user) {
         }  
     }
 }
+var formatDateMonth = function(date) {
 
+        var year = date.getFullYear();
+        console.log('year  to string ',year.toString());
+        var month = date.getMonth() + 1;
+        month = (month < 10) ? '0' + month : month;
+         console.log('month  to string ',month.toString());
+      
+
+       
+        //var second = date.getSeconds();
+
+        return year.toString()  + "-" + month.toString();
+}

@@ -2217,6 +2217,24 @@ exports.warahouseDetail = async function(request,reply){
                 "resource":list
     });
 }
+exports.rank = async function(request,reply){
+    var currentTimeStamp = new Date().getTime();
+    var currentDateTime = new Date(currentTimeStamp);
+    var dayString = formatDateDay(currentDateTime);
+    var dayRankRecord = await dao.findOne(request,'rank',{dayString:dayString});
+    if (dayRankRecord == null) {
+        reply({"message":"排行榜暂未统计","statusCode":108,"status":false});
+        return;
+    }
+    //列表
+    var data = dayRankRecord.ranks;
+    var rewards = setting.rank_rewards;
+    if(data == null){
+        reply({"message":"查询失败","statusCode":108,"status":false});
+    }else{
+        reply({"message":"查询成功","statusCode":107,"status":true,"resource":{users:data,rewards:rewards}});
+    }
+}
 
 //时间格式化
 function format1(fmt,data) { //author: meizz 
@@ -2250,6 +2268,19 @@ async function addparentNumber(request,parentUsername,remdNumber = false){
     }
 }
 
+// 
+async function nextExe(request,user) { //author: meizz 
+    var settingUserGrows = await dao.find(request,'settingUserGrow',{},{},{class:1});
+    // 用户的当前等级
+    var flag = user.class<=settingUserGrows.length?user.class:settingUserGrows.length;
+    var nextExe = 0;
+    for (var index = 0;index < flag;index ++) {
+        var settingGrow = settingUserGrows[index];
+        nextExe = nextExe + settingGrow.nex_exe;
+    }
+    // 升级到下一级时的总经验
+    return nextExe;
+}
 
 //时间格式化
 function format(fmt,data) { //author: meizz 
@@ -2267,20 +2298,9 @@ function format(fmt,data) { //author: meizz
     if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
     return fmt;
 }
-// 
-async function nextExe(request,user) { //author: meizz 
-    var settingUserGrows = await dao.find(request,'settingUserGrow',{},{},{class:1});
-    // 用户的当前等级
-    var flag = user.class<=settingUserGrows.length?user.class:settingUserGrows.length;
-    var nextExe = 0;
-    for (var index = 0;index < flag;index ++) {
-        var settingGrow = settingUserGrows[index];
-        nextExe = nextExe + settingGrow.nex_exe;
-    }
-    // 升级到下一级时的总经验
-    return nextExe;
-}
 
+// var stringTime = "1990-01-01 ";
+// var timestamp = Date.parse(new Date(stringTime));
 
 
 /**

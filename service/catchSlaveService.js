@@ -70,10 +70,10 @@ exports.cathSlave = async function(request,reply){
         var workProductDash = {};
         workProductDash.user_id = catchRecord.user_id;
         workProductDash.username = catchRecord.username;
-        workProductDash.experience = 0;
-        workProductDash.gold = 0;
-        workProductDash.props = [];
-        workProductDash.totalExperience = 0;
+        workProductDash.experience = 0;  // 经验
+        workProductDash.gold = 0;        // 金币
+        workProductDash.props = [];       // 道具
+        workProductDash.totalExperience = 0;   //
         workProductDash.totalGold = 0;
         workProductDash.thisFixedTime = 0;
         workProductDash.thisDropTime = 0;
@@ -101,24 +101,28 @@ exports.freeSlave = async function(request,reply){
     reply({"message":"解雇成功！","statusCode":107,"status":true});    
 }
 exports.myWorkStatus = async function(request,reply){ 
+    console.log('11123123123');
     var user = request.auth.credentials;
     var workStatusess = [];
     var workAreas = await dao.find(request,'workArea',{});
-    var catchRecords = await dao.find(request,'catchRecord',{user_id:user._id + ""});
+    var catchRecords = await dao.find(request,'catchRecord',{user_id:user._id + "",endStatus:0});
     if (catchRecords.length > 0) {
         for (var index in catchRecords) {
             var catchRecord = catchRecords[index];
             await updatecatchRecord(request,catchRecord);
         }
     }
+     console.log('22222222');
     for (var index in workAreas) {
         var workStatus = {};
         var workArea = workAreas[index];
+        
         workStatus.unlockClass = workArea.unlockClass;
         var workProductDash = await dao.findOne(request,'workProductDash',{user_id:user._id + "",work_id:workArea.id});
         if (!workProductDash) {
-            workProductDash.user_id = catchRecord.user_id;
-            workProductDash.username = catchRecord.username;
+            workProductDash = {};
+            workProductDash.user_id = user._id + "";
+            workProductDash.username = user.username;
             workProductDash.experience = 0;
             workProductDash.gold = 0;
             workProductDash.props = [];
@@ -133,8 +137,23 @@ exports.myWorkStatus = async function(request,reply){
         }
         workStatus.work_id = workArea.id;
         workStatus.name = workArea.name;
+        var catchRecord = await dao.findOne(request,'catchRecord',{user_id:user._id + "",endStatus:0});
+        if (catchRecord){
+            workStatus.slaveStatus = true;
+            var slave = {};
+            slave.user_id = catchRecord.slave_id;
+            slave.username = catchRecord.slave_user;
+            slave.nickname = catchRecord.slave_nickname;
+            slave.avatar = catchRecord.slave_avatar;
+            console.log('slave',slave);
+            workStatus.slave = slave;
+        } else {
+            workStatus.slaveStatus = false;
+            workStatus.slave = null;
+    
+        }
         workStatus.workProductDash = workProductDash;
-        var chatchRecord = await dao.findOne(request,'');
+       
         workStatusess.push(workStatus);
     }
     reply({"message":"查询成功！","statusCode":107,"status":true,"resource":workStatusess});    
@@ -166,8 +185,62 @@ exports.harvestMyWork = async function(request,reply){
     var user = request.auth.credentials;
     var workArea = await dao.findOne(request,'workArea',{id:request.payload.work_id});
     if (user.class < workArea.unlockClass) {
-         reply({"message":"查询成功！","statusCode":107,"status":true,"resource":{catchedStatus:true,master:master}}); 
+         reply({"message":"建筑还未解锁，没有收益！","statusCode":108,"status":false});
+         return; 
     }
+    var dashRecord = await dao.findOne(request,'workProductDash',{user_id:user._id + "",work_id:work.id});
+    if (dashRecord.experience == 0 && dashRecord.gold == 0 && dashRecord.props.length <= 0) {
+        reply({"message":"没有可收取的东西！","statusCode":108,"status":false});
+        return; 
+    }
+    var harvest = {};
+    harvest.experience = dashRecord.experience;
+    harvest.gold = dashRecord.gold;
+    harvest.props = dashRecord.props;
+    var harvestRecord = {};
+    harvestRecord.experience = dashRecord.experience;
+    harvestRecord.gold = dashRecord.gold;
+    harvestRecord.props = dashRecord.props;
+    harvestRecord.work_id = dashRecord.work_id;
+    harvestRecord.createTime = new Date().getTime();
+    harvestRecord.user_id = user._id + "";
+    harvestRecord.username = user.username;
+    await dao.save(request,'gbHarvestRecord',harvestRecord);
+    // 收取掉落组装备
+    if (dashRecord.props.length > 0) {
+        for (var index in dashRecord.props) {
+                var prop = dashRecord.props[index];
+                var prop_id = prop._id + "";
+                var propId = prop.id; 
+                var propInHouse = await dao.findOne(request,'warahouse',{prop_id:prop._id + "",user_id:user._id + ""});
+                console.log('33333',propInHouse);
+                if (propInHouse) {
+                    await dao.updateIncOne(request,'warahouse',{_id:propInHouse._id + ""},{count:prop.count});
+                } else {
+                    //prop进warahouse 除去_id、id增加prop_id、propId、user_id、username的全部信息
+                    delete prop._id;
+                    delete prop.id;
+                    propInHouse = prop;
+                    propInHouse.prop_id = prop_id;
+                    propInHouse.propId = propId;
+                    propInHouse.user_id = user._id + "";
+                    propInHouse.username = user.username;
+                    await dao.save(request,'warahouse',propInHouse);
+                }
+        }
+    }
+
+    // 收取经验和道具
+    await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:harvest.gold,experience:harvest.experience});
+    // 更新dash
+    await dao.updateOne(request,'workProductDash',{_id:dashRecord._id + ""},{experience:0,gold:0,props:[]});
+    await dao.updateIncOne(request,'workProductDash',{_id:dashRecord._id + ""},{
+        totalDropTime:dashRecord.thisDropTime,
+        totalFixedTime:thisFixedTime,
+        totalGold:dashRecord.gold,
+        totalExperience:dashRecord.experience
+    });
+
 }
 // 更新记录的状态和收益
 async function updatecatchRecord(request,catchRecord){ 
@@ -175,10 +248,10 @@ async function updatecatchRecord(request,catchRecord){
     var systemSet = await dao.findOne(request,'systemSet',{});
     var time = new Date().getTime();
     var deadline =  time;
-    if (time >= systemSet.slaveLeaveTime) {
+    if (time >= catchRecord.slaveLeaveTime) {
         catchRecord.endStatus = 1;
         await dao.updateOne(request,'catchRecord',{_id:catchRecord._id + ""},{endStatus:1});
-        deadline = systemSet.slaveLeaveTime;
+        deadline = catchRecord.slaveLeaveTime;
     }
     var fixedProductTotalCount = parseInt((deadline - catchRecord.createTime ) / (60 * 1000));
     var dropProductTotalCount = parseInt((deadline - catchRecord.createTime ) / (30 * 60 * 1000));
@@ -200,8 +273,8 @@ async function updatecatchRecord(request,catchRecord){
         var result = await dao.save(request,'workProductDash',workProductDash);
         dashRecord = result.ops[0];
     }
-    var thisFixedTime = fixedProductTotalCount - dashRecord.totalFixedTime;
-    var thisDropTime = dropProductTotalCount - dashRecord.totalDropTime;
+    var thisFixedTime = fixedProductTotalCount - catchRecord.harvestFixedTime;
+    var thisDropTime = dropProductTotalCount - catchRecord.harvestDropTime;
     await dao.updateIncOne(request,'workProductDash',{_id:dashRecord._id + ""},{thisDropTime:thisDropTime,thisDropTime:thisDropTime,totalFixedTime:thisFixedTime,totalDropTime:thisDropTime});
     // 计算收益
     var work = await dao.findOne(request,'workArea',{id:catchRecord.work_id});
@@ -233,7 +306,13 @@ async function updatecatchRecord(request,catchRecord){
         }
     }
 
-    await dao.updateOne(request,'workProductDash',{_id:dashRecord._id + ""},{props:props});
+    await dao.updateOne(request,'workProductDash',{_id:dashRecord._id + ""},{props:props,thisFixedTime:thisFixedTime,
+        thisDropTime:thisDropTime});
+    await dao.updateOne(request,'catchRecord',{_id:catchRecord._id + ""},{
+        harvestFixedTime:fixedProductTotalCount,
+        harvestDropTime:dropProductTotalCount,
+    });
+     reply({"message":"收获成功！","statusCode":101,"status":true,"resource":harvest}); 
 }
 // 更新道具数量
 async function pushPropNoRepeat(props,prop){  
@@ -259,9 +338,13 @@ async function pushPropsNoRepeat(props,newProps){
     }
 }
  exports.workStatus = async function(request,reply){ 
-     var user = request.auth.credentials;
+    var user = request.auth.credentials;
     var works = await dao.find(request,'workArea',{});
     var workStatusess = [];
+    if (works.length < 0) {
+         reply({"message":"查询失败","statusCode":108,"status":false});
+         return;
+    }
     for (var index in works) {
         const work = works[index];
         var workStatus = {};
@@ -273,7 +356,7 @@ async function pushPropsNoRepeat(props,newProps){
             workStatus.gold = 0;
             workStatus.experience = 0;
         } else {
-            await updatecatchRecord(catchRecord);
+            await updatecatchRecord(request,catchRecord);
             catchRecord = await dao.findOne(request,'catchRecord',{user_id:user._id + "",endStatus:0});
             var dashRecord = await dao.findOne(request,'workProductDash',{user_id:user._id + "",work_id:work.id});
             if (dashRecord.experience == 0 && dashRecord.gold == 0 && dashRecord.props.length <= 0 && catchRecord.endStatus == 1) {
