@@ -153,7 +153,7 @@ exports.userLogin = async function(request,reply){
     delete user.raw_password;
     delete user.scope;
     delete user.hmac_password;
-    console.log('loginuser11111',user);
+    // console.log('loginuser11111',user);
     // delete user.hmac_password;
     await userService.updateLandLockstatus(request,user);
     // await userService.updateFarmLockstatus(request,user);

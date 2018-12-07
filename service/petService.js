@@ -3,11 +3,36 @@ const dao = require("../dao/dao");
 var petService = require("../service/petService");
 exports.dog = async function(request,reply){   
     var user = request.auth.credentials;
+    await petService.addAllDogs(request);
     var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
+    if(!dog) {
+         reply({"message":"查询失败，未发现宠物！","statusCode":108,"status":false});
+         return;
+    }
     var dogSetting = await dao.findOne(request,'settingPetGrow',{class:dog.class});
     var dogInfo = await petService.updateDog(request,dog,dogSetting);
     console.log('dogInfo',dogInfo);
     reply({"message":"查询成功！","statusCode":101,"status":true,resource:dogInfo});
+}
+exports.addAllDogs = async function(request){
+    var users = await dao.find(request,'user',{});
+    var systemSet = await dao.findOne(request,"systemSet",{});
+    for (var index in users) {
+        var user = users[index];
+        var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
+        if (!dog) {
+            var dog = {};
+            dog.name = "哈士奇";
+            dog.class = 1;
+            dog.username = user.username;
+            dog.user_id = user._id + "";
+            dog.createTime = new Date().getTime();
+            dog.bsd = systemSet.petMaxBsd;
+            dog.updateTime = new Date().getTime();
+            await dao.save(request,'dog',dog);
+        }
+    } 
+    
 }
 exports.feedDog = async function(request,reply){   
     var user = request.auth.credentials;
@@ -316,6 +341,7 @@ exports.fightWithUser = async function(request,enemy){
     fightRecord.winner = fightProcess.winner;
     fightRecord.process = fightProcess.fightProcess;
     var result =  await dao.save(request,'fightRecord',fightRecord);
+    console.log('result.ops[0]',result.ops[0]);
     return result.ops[0];
 }
 

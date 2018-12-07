@@ -4,7 +4,7 @@ module.exports = [
 // 抓跟班
     {
         method:'POST',
-        path:'/cathSlave/cath/{id}',
+        path:'/cathSlave/cath',
         handler:catchSlaveService.cathSlave,
         config:{
             //拦截器
@@ -14,7 +14,7 @@ module.exports = [
             },
             description: '充值',
             notes: '充值Api',
-            //tags: ['api'],
+            tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
@@ -22,15 +22,10 @@ module.exports = [
                 payload:{
                      user_id:Joi.string().required().description("用户ID"),
                      work_id:Joi.number().required().description("工位ID")
-                },
-                params:{
-                     id:Joi.number().required().description("工位ID")
                 }
             }
         }
     },
-
-    
      {
         method:'GET',
         path:'/cathSlave/workStatus',
@@ -51,6 +46,32 @@ module.exports = [
             }
         }
     },
+
+    {
+        method:'POST',
+        path:'/cathSlave/freeSlave',
+        handler:catchSlaveService.freeSlave,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '解雇跟班',
+            notes: '解雇跟班Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    work_id:Joi.number().required().description('工作ID')
+                }
+
+            }
+        }
+    },
+
 
      {
         method:'GET',
@@ -84,7 +105,7 @@ module.exports = [
                 scope: 'USER'
             },
             description: '工作状态',
-            notes: '工作状态Api',
+             notes: '工作状态Api',
             //tags: ['api'],
             validate: {
                 headers: Joi.object({

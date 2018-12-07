@@ -31,14 +31,15 @@ exports.cathSlave = async function(request,reply){
             enemay = await dao.findById(request,'user',hisCatchRecord.user_id + "");
         }
     }
-    var fightResult = petService.fightWithUser(request,enemay);
+    var fightResult = await petService.fightWithUser(request,enemay);
+    
     if (fightResult.status == false) {
          reply({"message":"战斗失败，系统出错！","statusCode":107,"status":fightResult.status});
          return;
     } 
 
     if (fightResult.winner != user.username ) {
-        reply({"message":"战斗完成：失败！","statusCode":102,"status":false,resource:fightResult});
+        reply({"message":"战斗完成：失败！","statusCode":102,"status":true,resource:fightResult});
         return;
     }
         
@@ -61,13 +62,14 @@ exports.cathSlave = async function(request,reply){
     catchRecord.harvestFixedTime = 0;
     catchRecord.harvestDropTime = 0;
     catchRecord.slaveLeaveTime = time + systemSet.slaveWorkHour * 60 * 60 * 1000;
+    // catchRecord.
     var result =  await dao.save(request,'catchRecord',catchRecord);
     catchRecord = result.ops[0];
     var workProductDash = await dao.findOne(request,'workProductDash',{work_id:request.payload.work_id,user_id:user._id + ""});
     if (!workProductDash) {
         var workProductDash = {};
         workProductDash.user_id = catchRecord.user_id;
-        workProductDash.username = catchRecord.user.username;
+        workProductDash.username = catchRecord.username;
         workProductDash.experience = 0;
         workProductDash.gold = 0;
         workProductDash.props = [];
@@ -82,7 +84,22 @@ exports.cathSlave = async function(request,reply){
     }
     reply({"message":"抓捕成功！","statusCode":107,"status":true,"resource":fightResult});    
 }
-
+// 抓跟班
+exports.freeSlave = async function(request,reply){ 
+    var user = request.auth.credentials;
+    var catchRecord = await dao.findOne(request,'catchRecord',{user_id:user._id + "",endStatus:0,work_id:request.payload.work_id});
+    if (!catchRecord) {
+         reply({"message":"您还没有跟班！","statusCode":108,"status":false});    
+         return;
+    }
+    updatecatchRecord(request,catchRecord);
+    if (catchRecord.endStatus == 1) {
+        reply({"message":"您还没有跟班！","statusCode":108,"status":false});    
+        return;
+    }
+    await dao.updateOne(request,'catchRecord',{_id:catchRecord._id + ""},{endStatus:1});
+    reply({"message":"解雇成功！","statusCode":107,"status":true});    
+}
 exports.myWorkStatus = async function(request,reply){ 
     var user = request.auth.credentials;
     var workStatusess = [];
@@ -101,7 +118,7 @@ exports.myWorkStatus = async function(request,reply){
         var workProductDash = await dao.findOne(request,'workProductDash',{user_id:user._id + "",work_id:workArea.id});
         if (!workProductDash) {
             workProductDash.user_id = catchRecord.user_id;
-            workProductDash.username = catchRecord.user.username;
+            workProductDash.username = catchRecord.username;
             workProductDash.experience = 0;
             workProductDash.gold = 0;
             workProductDash.props = [];
@@ -154,6 +171,7 @@ exports.harvestMyWork = async function(request,reply){
 }
 // 更新记录的状态和收益
 async function updatecatchRecord(request,catchRecord){ 
+    console.log("updatecatchRecord");
     var systemSet = await dao.findOne(request,'systemSet',{});
     var time = new Date().getTime();
     var deadline =  time;
@@ -168,7 +186,7 @@ async function updatecatchRecord(request,catchRecord){
     if (!dashRecord) {
         var workProductDash = {};
         workProductDash.user_id = catchRecord.user_id;
-        workProductDash.username = catchRecord.user.username;
+        workProductDash.username = catchRecord.username;
         workProductDash.experience = 0;
         workProductDash.gold = 0;
         workProductDash.props = [];
@@ -282,18 +300,22 @@ exports.randUsers = async function(request,reply){
     if (sum <= count) {
         for (var index in findRes) {
             var temUser = findRes[index];
-         
+            console.log('temUser',temUser);
+            await updateUserCatchedStatus(request,temUser);
         }
         reply({"message":"获取用户列表成功","statusCode":107,"status":true,"resource":findRes,"sum":findRes.length});
         return ;
     }
     var incnos = [];
     var arr = [];
+    
     while(arr.length < count){
         var number = Math.floor(Math.random()*findRes.length);
         if(incnos.length == 0){
             incnos.push(number);
+            await updateUserCatchedStatus(request,findRes[number]);
             arr.push(findRes[number]);
+            // console.log('arrr',arr);
         } else {
             var hasNumber = false;
             for(var i=0;i<incnos.length;i++){
@@ -303,16 +325,43 @@ exports.randUsers = async function(request,reply){
                 }
             }
             if(hasNumber == false){
+                await updateUserCatchedStatus(request,findRes[number]);
                 arr.push(findRes[number]);
+                // console.log('arrr',arr);
                 incnos.push(number); 
             }
         }
         
     }
-    reply({"message":"获取用户列表成功","statusCode":107,"status":true,"resource":findRes,"sum":findRes.length});
+    reply({"message":"获取用户列表成功","statusCode":107,"status":true,"resource":arr,"sum":arr.length});
 
 }
+const updateUserCatchedStatus = async function(request,user) {
+    console.log("updateUserCatchedStatus");
+    var catchRecord = await dao.findOne(request,'catchRecord',{slave_id:user._id + "",endStatus:0});
+    if (!catchRecord) {
+        user.catchedStatus = false;
+        user.master = {};
+    } else {
+        await updatecatchRecord(request,catchRecord);
+        if (catchRecord.endStatus == 0) {
+            user.catchedStatus = true;
+            var master = {};
+            console.log('---------catchRecord',catchRecord);
+            master.username = catchRecord.username;
+            master.nickname = catchRecord.nickname;
+            master.avatar = catchRecord.avatar;
+            master.work_id = catchRecord.work_id;
+            user.master = master;
+            console.log('user',user);
+        } else {
+            user.catchedStatus = false;
+            user.master = {};
+        }
+    }
 
+    return;
+}
 const rescueQuery = function(request,catch_id) {
     var user = request.auth.credentials;
     var req  = require('urllib-sync').request;
