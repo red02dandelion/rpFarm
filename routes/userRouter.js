@@ -741,6 +741,27 @@ module.exports = [
         }
     },
 
+        //获取用户好友列表
+    {
+        method:'GET',
+        path:'/user/buyGuanjia',
+        handler:userService.buyVip,
+        config:{
+            auth:{
+                strategy: 'bearer',
+                scope: ["USER"]
+            }, 
+            description: '获取用户好友列表',
+            notes: '获取用户好友列表',
+            //tags: ['api'],
+            validate: {
+                 headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()                
+            }
+        }
+    },
+
     // 删除好友
     // {
     //     method:'POST',

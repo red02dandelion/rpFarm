@@ -1266,6 +1266,17 @@ exports.randomTest = async function(request,reply) {
     reply({arr:arr});
 }
 
+exports.buyGuanjia = async function(request,reply) { 
+    var user = request.auth.credentials;
+    var systemSet = await dao.findOne(request,'systemSet',{});
+    var time = new Date().getTime();
+    if (user.guanjiaTime && user.guanjiaTime >= time ) {
+         reply({"message":"您已经有管家了，不要重复购买！","statusCode":108,"status":false});
+         return;
+    }
+    var dimond = systemSet.dimond;
+    
+}
 exports.buyVip = async function(request,reply) { 
     var user = request.auth.credentials;
 
@@ -1330,23 +1341,6 @@ exports.buyVip = async function(request,reply) {
     //     vipYear = user.vi
     // }
 
-    var gold = 0;
-    switch (request.payload.time) {
-        case 1:
-            gold = 10;
-            break;
-        case 3:
-            gold = 28;
-            break;
-        case 6:
-             gold = 55;
-            break;
-        case 12:
-            gold = 100;
-            break;
-        default:
-            break;
-    }
     
     // 生成充值订单
     var vipCount = await dao.findCount(request,'vipRecord',vipRecord);
@@ -1369,181 +1363,21 @@ exports.buyVip = async function(request,reply) {
     var trancode;
     var path;
     var walletType = request.payload.walletType;
-    console.log('request.payload.device',request.payload.device);
-    switch (request.payload.device) {
-        case 1:
-            // 微信支付
-            trancode = "SZZF014";
-            walletType = 2;
-            path = "payment/H5pagepay";
-        break;
-        
-        case 2:
-            // 二维码支付宝支付
-            trancode = "SZZF004";
-            walletType = 1;
-            path = "payment/precreate";
-           
-        break;
-         case 3:
-            // 二维码支付
-            trancode = "SZZF004";
-            path = "payment/precreate";
-           
-        break;
-        default:
-            break;
-    }
-
-    // 请求支付
-   
-     var data = {
-        merchantid:"210709",
-        bizOrderNumber:recharge_no,
-        srcAmt:gold,
-        // srcAmt:0.01,
-        redirectUrl:settings.host,
-        notifyUrl:hosts + "/payStatus/vip",
-        goods_desc:"购买Vip"  + request.payload.time + "个月",
-        memo:"购买会员",
-        tranCode:trancode,
-        walletType:walletType,
-        "merchantInput":"alice"
-     };
-    data = JSON.stringify(data);
-    var device = request.payload.device;
-    var nodeUrl = "http://payhub.shuzutech.com:8088/shuzu/" + path;
-    secretUtils.shuzhu_pay(request,reply,data,nodeUrl,trancode,device);
-    return;
-
-
-    var phpData = {};
-     phpData.data =  data;
-     phpData.trancode = trancode;
-     phpData.path = path;
-    //  var php_json = JSON.encrypt();
-    var cooperatorAESKey = "566af22e6f7e414d";
-    var php_json = JSON.stringify(phpData);
-    console.log('php json is ',php_json);
-
-    var urllib = require('urllib');
-    var path = 'http://47.92.88.214:5512';
-    urllib.request(path, {
-        method: 'POST',
-        headers: {
-            "Content-Type": "application/json"
-        },
-        data: JSON.stringify(phpData),
-        timeout:20000,
-    },
-    async function(err,data,res){
-
-    var dataString = data.toString();
-        console.log('------data  is ',dataString);
-        var dataArr = dataString.split('/>');
-        console.log('------dataArr  is ',dataArr);
-        if (dataArr.length > 1) {
-            dataString = dataArr[dataArr.length - 1];
-            console.log('------after dataString  is ',dataString);
-        }
-        var jsonData = JSON.parse(dataString);
-        console.log('------data reqcode  is ',jsonData.code);
-            if (jsonData.code == "00000") {
-                var data = JSON.parse(jsonData.data);
-                jsonData.data = data;
-                if (request.payload.device == 1) {
-                    
-                     jsonData.data.url   = "http://paymgmt.shuzutech.com/pay/redirect_pay.php?id=" + jsonData.data.id;
-                    
-                 } 
-                if (request.payload.device == 2) {
-                      jsonData.data.url = jsonData.data.qrcode;
-                }
-                console.log('--- jsonData.data',jsonData.data);
-                reply({
-                    "message":"已提交支付",
-                    "statusCode":101,
-                    "status":true,
-                    "resource":jsonData.data
-                })
-            } else {
-
-                reply({
-                    "message":jsonData.resMsg,
-                    "statusCode":102,
-                    "status":false
-                });
-            }
-
-        // console.log('------response err is ',err);
-        // console.log('------response data is ',data.toString());
-        // console.log('------response res is ',res);
-    //      if(err) {
-    //         console.log('err is ',err);
-    //     } else { 
-    //     var jsonData = JSON.parse(data);
-        
-    //     console.log('data is ',jsonData);
-    //     console.log('jsonData.data is ',jsonData.data);
-    //     if (jsonData.code == "00000") {
-    //         reply({
-    //             "message":"已提交支付",
-    //             "statusCode":101,
-    //             "status":true,
-    //             "resource":jsonData.data
-    //         })
-    //     } else {
-    //         reply({
-    //             "message":jsonData.resMsg,
-    //             "statusCode":102,
-    //             "status":false
-    //         });
-    //     }
-    // }
     
+    var updateRes = await dao.updateOne(request,'vipRecord',{recharge_no:request.payload.out_trade_no},{pay_status:1});
+    // var vipRecord = await dao.findOne(request,'vipRecord',{recharge_no:request.payload.out_trade_no});
+    // if (vipRecord == null) {
+    //     reply({"message":"无此记录","statusCode":102,"status":false});
+    //     return;
+    // }
+    var vipRecord = findRes;
+    var endYears = vipRecord.endYears;
+    var endMonth = vipRecord.endMonth;
+    var endDate = vipRecord.endDate;
+    console.log(endYears + "-" + endDate + ":" + endDate);
+    var upRes = await dao.updateOne(request,'user',{username:vipRecord.username},{vipYear:endYears,vipMonth:endMonth,endDate:endDate});
+    reply({"message":"充值成功！","statusCode":101,"status":true});
 
-    // return;
-    // console.log('------data reqcode  is ',jsonData.code);
-    // reply({
-    //     "message":"请求成功",
-    //     "statusCode":101,
-    //     "status":true,
-    //     "data":data
-    // });
-
-        return;
-        // var jsonData = JSON.parse(dataString);
-        // console.log('------response jsonData is ',jsonData);
-        //  console.log('data is ',data);
-        //  console.log('res is ',res);
-        // if(err) {
-        //     console.log('err is ',err);
-        // } else {
-        //     var jsonData = data.toString();
-        //     // var json = JSON.parse(jsonData);
-        //     // var json = JSON.parse(json);
-        //     console.log("jsonData is ",jsonData);
-        //     // reply(json);
-
-        //     // 对data进行解密
-        // }
-            
-            //var json2 = JSON.parse(json.data);
-            // if (json.state==false){
-            //     await dao.updateOne(request,"tixianRecord",{_id:order._id+""},{status:3});
-            //     var user =  await dao.findById(request,"user",order.userId);
-            //      await dao.updateOne(request,"user",{_id:user._id+""},{withdrawGold:user.withdrawGold+order.number});
-            //     reply({"message":json.msg,"message1":"请重新提现","statusCode":106,"status":false});
-            // }else{
-            //     dao.updateOne(request,"tixianRecord",{_id:order._id+""},{status:2});
-            //     reply({"message":json.msg,"statusCode":105,"status":true});
-            // }
-     });
-
-    return;
-     
-
-      
 
 }
 exports.vipStatus = async function(request,reply) {  

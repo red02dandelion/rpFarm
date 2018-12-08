@@ -8,12 +8,16 @@ const petService = require('../service/petService');
 // 抓跟班
 exports.cathSlave = async function(request,reply){
     var user = request.auth.credentials;
+    var time = new Date().getTime();
     var slave = await dao.findById(request,'user',request.payload.user_id);
     if (!slave) {
         reply({"message":"用户不存在","statusCode":102,"status":false});
         return; 
     }
-    
+    if (slave.guanjiaTime && slave.guanjiaTime > time) {
+        reply({"message":"对方有管家，抓不住啊！","statusCode":102,"status":false});
+        return; 
+    }
     // 判断当前工位是不是有奴隶
     var myCatchRecord = await dao.findOne(request,'catchRecord',{work_id:request.payload.work_id,user_id:user._id + ""});
     if (myCatchRecord) {
