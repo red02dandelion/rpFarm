@@ -597,6 +597,22 @@ exports.harvest = async function (request,reply) {
     await dao.updateIncOne(request,'user',{_id:user._id + ""},harvest);
     var timeStamp = new Date().getTime();
     if (harvest.hb > 0) {
+        var time = new Date().getTime();
+        var monthString = formatDateMonth(request,new Date(time));
+        var myMonthHbRecord = await dao.findOne(request,"monthHbRecord",{user_id:user._id + "",monthString:monthString});
+        if (!myMonthHbRecord) {
+            myMonthHbRecord = {};
+            myMonthHbRecord.hb = data.hb;
+            myMonthHbRecord.createTime = time;
+            myMonthHbRecord.user_id = user._id + "";
+            myMonthHbRecord.username = user.username;
+            myMonthHbRecord.nickname = user.nickname;
+            myMonthHbRecord.avatar = user.avatar;
+            myMonthHbRecord.name = user.name;
+            await dao.save(request,'monthHbRecord',myMonthHbRecord);
+        } else {
+            await dao.updateIncOne(request,'monthHbRecord',{_id:myMonthHbRecord._id + ""},{hb:hb});
+        }
         var hbGetRecord = {};
         hbGetRecord.createTime = timeStamp;
         hbGetRecord.monthString = formatDateMonth(new Date(timeStamp));
