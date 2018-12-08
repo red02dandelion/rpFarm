@@ -242,16 +242,17 @@ exports.award = async function(request,reply){
         } else {
             await dao.updateIncOne(request,'monthHbRecord',{_id:myMonthHbRecord._id + ""},{hb:hb});
         }
-        var hbRecord = {};
-        hbRecord = {};
-        hbRecord.hb = data.hb;
-        hbRecord.createTime = time;
-        hbRecord.user_id = user._id + "";
-        hbRecord.username = user.username;
-        hbRecord.nickname = user.nickname;
-        hbRecord.avatar = user.avatar;
-        hbRecord.name = user.name;
-        hbRecord.type = 1; // 类型 
+
+        var hbGetRecord = {};
+        hbGetRecord.createTime = timeStamp;
+        hbGetRecord.monthString = formatDateMonth(new Date(timeStamp));
+        hbGetRecord.hb = harvest.hb;
+        hbGetRecord.type = 1; // 5 种地收获 2 养殖收获 3 偷取红包 4 红包找回 5 抽奖红包
+        hbGetRecord.user_id = user._id + "";
+        hbGetRecord.username = user.username;
+        hbGetRecord.nickname = user.nickname;
+        hbGetRecord.name = user.name;
+        await dao.save(request,'hbGetRecord',hbGetRecord);
     }
     reply({
                 "message":"抽奖成功",
