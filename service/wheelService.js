@@ -225,8 +225,33 @@ exports.award = async function(request,reply){
     data.createTime = new Date().getTime();
     var result = await dao.save(request,"awardRecord",data);
 
-    if (hb > 0 ) {
-        
+    if (data.hb > 0 ) {
+        var time = new Date().getTime();
+        var monthString = formatDateMonth(request,new Date(time));
+        var myMonthHbRecord = await dao.findOne(request,"monthHbRecord",{user_id:user._id + "",monthString:monthString});
+        if (!myMonthHbRecord) {
+            myMonthHbRecord = {};
+            myMonthHbRecord.hb = data.hb;
+            myMonthHbRecord.createTime = time;
+            myMonthHbRecord.user_id = user._id + "";
+            myMonthHbRecord.username = user.username;
+            myMonthHbRecord.nickname = user.nickname;
+            myMonthHbRecord.avatar = user.avatar;
+            myMonthHbRecord.name = user.name;
+            await dao.save(request,'monthHbRecord',myMonthHbRecord);
+        } else {
+            await dao.updateIncOne(request,'monthHbRecord',{_id:myMonthHbRecord._id + ""},{hb:hb});
+        }
+        var hbRecord = {};
+        hbRecord = {};
+        hbRecord.hb = data.hb;
+        hbRecord.createTime = time;
+        hbRecord.user_id = user._id + "";
+        hbRecord.username = user.username;
+        hbRecord.nickname = user.nickname;
+        hbRecord.avatar = user.avatar;
+        hbRecord.name = user.name;
+        hbRecord.type = 1; // 类型 
     }
     reply({
                 "message":"抽奖成功",
@@ -236,4 +261,91 @@ exports.award = async function(request,reply){
      });
     return ;
 
+}
+
+//时间格式化
+function format(fmt,data) { //author: meizz 
+    var o = {
+        "M+": data.getMonth() + 1, //月份 
+        "d+": data.getDate(), //日 
+        "h+": data.getHours(), //小时 
+        "m+": data.getMinutes(), //分 
+        "s+": data.getSeconds(), //秒 
+        "q+": Math.floor((data.getMonth() + 3) / 3), //季度 
+        "S": data.getMilliseconds() //毫秒 
+    };
+    if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (data.getFullYear() + "").substr(4 - RegExp.$1.length));
+    for (var k in o)
+    if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+    return fmt;
+}
+
+// var stringTime = "1990-01-01 ";
+// var timestamp = Date.parse(new Date(stringTime));
+
+
+/**
+ * 传入日期的的字符串  参数是个Date对象 
+ * 
+ * @param {any} date 参数是个Date对象 
+ * @returns 
+ */
+var zlFormat = function(date) {
+
+        var year = date.getFullYear();
+        var month = date.getMonth() + 1;
+        month = (month < 10) ? '0' + month : month;
+        var day = date.getDate();
+
+        var hour = date.getHours();
+        var minute = (date.getMinutes() < 10) ? '0' + date.getMinutes() : date.getMinutes();
+        //var minute = date.getMinutes();
+        var second = (date.getSeconds() < 10) ? '0' + date.getSeconds() : date.getSeconds();
+        //var second = date.getSeconds();
+
+        return year.toString()  + "-" + month.toString()  + "-" + day.toString() + " " +  hour.toString()  + ":" + minute.toString()  + ":" + second.toString();
+}
+
+var formatDateDay = function(date) {
+
+        var year = date.getFullYear();
+        var month = date.getMonth() + 1;
+        month = (month < 10) ? '0' + month : month;
+        var day = date.getDate();
+
+       
+        //var second = date.getSeconds();
+
+        return year.toString()  + "-" + month.toString()  + "-" + day.toString();
+}
+
+var orderFormat = function(date) {
+
+        var year = date.getFullYear();
+        var month = date.getMonth() + 1;
+        month = (month < 10) ? '0' + month : month;
+        var day = date.getDate();
+
+        var hour = date.getHours();
+        var minute = (date.getMinutes() < 10) ? '0' + date.getMinutes() : date.getMinutes();
+        //var minute = date.getMinutes();
+        var second = (date.getSeconds() < 10) ? '0' + date.getSeconds() : date.getSeconds();
+        //var second = date.getSeconds();
+
+        return year.toString()  + month.toString()  + day.toString() + hour.toString()  + minute.toString()  + second.toString();
+}
+
+var formatDateMonth = function(date) {
+
+        var year = date.getFullYear();
+        console.log('year  to string ',year.toString());
+        var month = date.getMonth() + 1;
+        month = (month < 10) ? '0' + month : month;
+         console.log('month  to string ',month.toString());
+      
+
+       
+        //var second = date.getSeconds();
+
+        return year.toString()  + "-" + month.toString();
 }
