@@ -2220,19 +2220,18 @@ exports.warahouseDetail = async function(request,reply){
 exports.rank = async function(request,reply){
     var currentTimeStamp = new Date().getTime();
     var currentDateTime = new Date(currentTimeStamp);
-    var dayString = formatDateDay(currentDateTime);
-    var dayRankRecord = await dao.findOne(request,'rank',{dayString:dayString});
-    if (dayRankRecord == null) {
-        reply({"message":"排行榜暂未统计","statusCode":108,"status":false});
+    var monthString = formatDateMonth(currentDateTime);
+    var dayRankRecord = await dao.find(request,'monthHbRecord',{},{},{hb:-1});
+    if (dayRankRecord.length <= 0) {
+        reply({"message":"暂未产生红包排行！","statusCode":108,"status":false});
         return;
     }
     //列表
-    var data = dayRankRecord.ranks;
-    var rewards = setting.rank_rewards;
+    var data =dayRankRecord;
     if(data == null){
         reply({"message":"查询失败","statusCode":108,"status":false});
     }else{
-        reply({"message":"查询成功","statusCode":107,"status":true,"resource":{users:data,rewards:rewards}});
+        reply({"message":"查询成功","statusCode":107,"status":true,"resource":{users:data}});
     }
 }
 
