@@ -1421,6 +1421,17 @@ exports.randomTest = async function(request,reply) {
     reply({arr:arr});
 }
 
+exports.buyGuanjia = async function(request,reply) { 
+    var user = request.auth.credentials;
+    var systemSet = await dao.findOne(request,'systemSet',{});
+    var time = new Date().getTime();
+    if (user.guanjiaTime && user.guanjiaTime >= time ) {
+         reply({"message":"您已经有管家了，不要重复购买！","statusCode":108,"status":false});
+         return;
+    }
+    var dimond = systemSet.dimond;
+    
+}
 exports.buyVip = async function(request,reply) { 
     var user = request.auth.credentials;
 
@@ -1485,23 +1496,6 @@ exports.buyVip = async function(request,reply) {
     //     vipYear = user.vi
     // }
 
-    var gold = 0;
-    switch (request.payload.time) {
-        case 1:
-            gold = 10;
-            break;
-        case 3:
-            gold = 28;
-            break;
-        case 6:
-             gold = 55;
-            break;
-        case 12:
-            gold = 100;
-            break;
-        default:
-            break;
-    }
     
     // 生成充值订单
     var vipCount = await dao.findCount(request,'vipRecord',vipRecord);
@@ -1524,6 +1518,8 @@ exports.buyVip = async function(request,reply) {
     var trancode;
     var path;
     var walletType = request.payload.walletType;
+<<<<<<< HEAD
+=======
     // console.log('request.payload.device',request.payload.device);
     switch (request.payload.device) {
         case 1:
@@ -1655,50 +1651,22 @@ exports.buyVip = async function(request,reply) {
     //         });
     //     }
     // }
+>>>>>>> newFeatureWheel
     
+    var updateRes = await dao.updateOne(request,'vipRecord',{recharge_no:request.payload.out_trade_no},{pay_status:1});
+    // var vipRecord = await dao.findOne(request,'vipRecord',{recharge_no:request.payload.out_trade_no});
+    // if (vipRecord == null) {
+    //     reply({"message":"无此记录","statusCode":102,"status":false});
+    //     return;
+    // }
+    var vipRecord = findRes;
+    var endYears = vipRecord.endYears;
+    var endMonth = vipRecord.endMonth;
+    var endDate = vipRecord.endDate;
+    console.log(endYears + "-" + endDate + ":" + endDate);
+    var upRes = await dao.updateOne(request,'user',{username:vipRecord.username},{vipYear:endYears,vipMonth:endMonth,endDate:endDate});
+    reply({"message":"充值成功！","statusCode":101,"status":true});
 
-    // return;
-    // console.log('------data reqcode  is ',jsonData.code);
-    // reply({
-    //     "message":"请求成功",
-    //     "statusCode":101,
-    //     "status":true,
-    //     "data":data
-    // });
-
-        return;
-        // var jsonData = JSON.parse(dataString);
-        // console.log('------response jsonData is ',jsonData);
-        //  console.log('data is ',data);
-        //  console.log('res is ',res);
-        // if(err) {
-        //     console.log('err is ',err);
-        // } else {
-        //     var jsonData = data.toString();
-        //     // var json = JSON.parse(jsonData);
-        //     // var json = JSON.parse(json);
-        //     console.log("jsonData is ",jsonData);
-        //     // reply(json);
-
-        //     // 对data进行解密
-        // }
-            
-            //var json2 = JSON.parse(json.data);
-            // if (json.state==false){
-            //     await dao.updateOne(request,"tixianRecord",{_id:order._id+""},{status:3});
-            //     var user =  await dao.findById(request,"user",order.userId);
-            //      await dao.updateOne(request,"user",{_id:user._id+""},{withdrawGold:user.withdrawGold+order.number});
-            //     reply({"message":json.msg,"message1":"请重新提现","statusCode":106,"status":false});
-            // }else{
-            //     dao.updateOne(request,"tixianRecord",{_id:order._id+""},{status:2});
-            //     reply({"message":json.msg,"statusCode":105,"status":true});
-            // }
-     });
-
-    return;
-     
-
-      
 
 }
 exports.vipStatus = async function(request,reply) {  
@@ -2374,6 +2342,23 @@ exports.warahouseDetail = async function(request,reply){
                 "resource":list
     });
 }
+exports.rank = async function(request,reply){
+    var currentTimeStamp = new Date().getTime();
+    var currentDateTime = new Date(currentTimeStamp);
+    var monthString = formatDateMonth(currentDateTime);
+    var dayRankRecord = await dao.find(request,'monthHbRecord',{},{},{hb:-1});
+    if (dayRankRecord.length <= 0) {
+        reply({"message":"暂未产生红包排行！","statusCode":108,"status":false});
+        return;
+    }
+    //列表
+    var data =dayRankRecord;
+    if(data == null){
+        reply({"message":"查询失败","statusCode":108,"status":false});
+    }else{
+        reply({"message":"查询成功","statusCode":107,"status":true,"resource":{users:data}});
+    }
+}
 
 //时间格式化
 function format1(fmt,data) { //author: meizz 
@@ -2407,6 +2392,19 @@ async function addparentNumber(request,parentUsername,remdNumber = false){
     }
 }
 
+// 
+async function nextExe(request,user) { //author: meizz 
+    var settingUserGrows = await dao.find(request,'settingUserGrow',{},{},{class:1});
+    // 用户的当前等级
+    var flag = user.class<=settingUserGrows.length?user.class:settingUserGrows.length;
+    var nextExe = 0;
+    for (var index = 0;index < flag;index ++) {
+        var settingGrow = settingUserGrows[index];
+        nextExe = nextExe + settingGrow.nex_exe;
+    }
+    // 升级到下一级时的总经验
+    return nextExe;
+}
 
 //时间格式化
 function format(fmt,data) { //author: meizz 
@@ -2424,20 +2422,9 @@ function format(fmt,data) { //author: meizz
     if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
     return fmt;
 }
-// 
-async function nextExe(request,user) { //author: meizz 
-    var settingUserGrows = await dao.find(request,'settingUserGrow',{},{},{class:1});
-    // 用户的当前等级
-    var flag = user.class<=settingUserGrows.length?user.class:settingUserGrows.length;
-    var nextExe = 0;
-    for (var index = 0;index < flag;index ++) {
-        var settingGrow = settingUserGrows[index];
-        nextExe = nextExe + settingGrow.nex_exe;
-    }
-    // 升级到下一级时的总经验
-    return nextExe;
-}
 
+// var stringTime = "1990-01-01 ";
+// var timestamp = Date.parse(new Date(stringTime));
 
 
 /**

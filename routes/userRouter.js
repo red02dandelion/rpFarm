@@ -716,6 +716,52 @@ module.exports = [
         }
     },
 
+         //获取用户好友列表
+    {
+        method:'GET',
+        path:'/user/rank/{page}/{size}',
+        handler:userService.rank,
+        config:{
+            auth:{
+                strategy: 'bearer',
+                scope: ["USER"]
+            }, 
+            description: '获取用户好友列表',
+            notes: '获取用户好友列表',
+            //tags: ['api'],
+            validate: {
+                 headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    page : Joi.number().default(0).description("页数"),
+                    size : Joi.number().default(0).description("长度")
+                },                
+            }
+        }
+    },
+
+        //获取用户好友列表
+    {
+        method:'GET',
+        path:'/user/buyGuanjia',
+        handler:userService.buyVip,
+        config:{
+            auth:{
+                strategy: 'bearer',
+                scope: ["USER"]
+            }, 
+            description: '获取用户好友列表',
+            notes: '获取用户好友列表',
+            //tags: ['api'],
+            validate: {
+                 headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()                
+            }
+        }
+    },
+
     // 删除好友
     // {
     //     method:'POST',
