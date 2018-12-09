@@ -166,6 +166,14 @@ var scheduleService = require('./service/scheduleService');
             }
             console.log('Server runing at:',server.info.uri);
             server.log(['debug'], 'Started...');
+            var testObjs = [1,2,3,4,5,6];
+            for (var index in testObjs) {
+                var obj = testObjs[index];
+                if (obj == 3) {
+                    continue;
+                }
+                console.log(obj);
+            }
         });
 
     });

@@ -1,13 +1,13 @@
 const Joi = require('joi');
-const landService = require('../service/landService');
+const farmService = require('../service/farmService');
 // 系统设置
   
 module.exports = [
     // 植物标签
     {
         method:'GET',
-        path:'/plant/tags',
-        handler:landService.tags,
+        path:'/animal/tags',
+        handler:farmService.tags,
         config:{
             //拦截器
             auth: {
@@ -27,8 +27,8 @@ module.exports = [
     // 标签下植物
     {
         method:'GET',
-        path:'/plant/seed/{id}',
-        handler:landService.tagPlant,
+        path:'/animal/seed/{id}',
+        handler:farmService.tagPlant,
         config:{
             //拦截器
              
@@ -52,8 +52,8 @@ module.exports = [
     // 解锁植物
     {
         method:'GET',
-        path:'/plant/unlock/{id}',
-        handler:landService.unlockPlant,
+        path:'/animal/unlock/{id}',
+        handler:farmService.unlockPlant,
         config:{
             //拦截器
             auth: {
@@ -77,8 +77,8 @@ module.exports = [
      // 合成植物
     {
         method:'GET', 
-        path:'/plant/cb/{id}',
-        handler:landService.cbPlant,
+        path:'/animal/cb/{id}',
+        handler:farmService.cbPlant,
         config:{
             //拦截器
             auth: {
@@ -101,8 +101,8 @@ module.exports = [
     // 种植
     {
         method:'POST',
-        path:'/plant/{code}',
-        handler:landService.plant,
+        path:'/animal/{code}',
+        handler:farmService.plant,
         config:{
             //拦截器
             auth: {
@@ -129,8 +129,8 @@ module.exports = [
     // 解锁植物
     {
         method:'GET',
-        path:'/plant/userDetail/{id}',
-        handler:landService.userPlantDetail,
+        path:'/animal/userDetail/{id}',
+        handler:farmService.userPlantDetail,
         config:{
             //拦截器
             auth: {
@@ -154,8 +154,8 @@ module.exports = [
      // 收获预览
     {
         method:'GET',
-        path:'/plant/harvestPreview/{id}',
-        handler:landService.harvestPreview,
+        path:'/animal/harvestPreview/{id}',
+        handler:farmService.harvestPreview,
         config:{
             //拦截器
             auth: {
@@ -178,8 +178,8 @@ module.exports = [
     // 收获
     {
         method:'GET',
-        path:'/plant/harvest/{id}',
-        handler:landService.harvest,
+        path:'/animal/harvest/{id}',
+        handler:farmService.harvest,
         config:{
             //拦截器
             auth: {
@@ -202,8 +202,8 @@ module.exports = [
     // 一键收获
     {
         method:'GET',
-        path:'/plant/oneKeyHarvest',
-        handler:landService.onekeyHarvest,
+        path:'/animal/oneKeyHarvest',
+        handler:farmService.onekeyHarvest,
         config:{
             //拦截器
             auth: {
@@ -223,8 +223,8 @@ module.exports = [
         // 偷红包
     {
         method:'POST',
-        path:'/plant/plt/steal/{id}',
-        handler:landService.steal,
+        path:'/animal/plt/steal/{id}',
+        handler:farmService.plt_steal,
         config:{
             //拦截器
             auth: {
@@ -239,53 +239,7 @@ module.exports = [
                     'authorization': Joi.string().required().description('需要加token请求头')
                 }).unknown(),
                 params:{
-                     id:Joi.string().required().description("用户ID"),
-                }
-            }
-        }
-    },
-
-        // 偷红包
-    {
-        method:'GET',
-        path:'/plant/stealNews',
-        handler:landService.stealNews,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '偷取',
-            notes: '偷取Api',
-            tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
-            }
-        }
-    },
-       // 阅读
-    {
-        method:'POST',
-        path:'/plant/steal/read',
-        handler:landService.readNews,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '阅读',
-            notes: '阅读Api',
-            tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                payload:{
-                    ids:Joi.array().required().description('阅读偷取记录id')
+                     id:Joi.string().required().description("土地ID")
                 }
             }
         }
@@ -293,8 +247,8 @@ module.exports = [
     // 分享解锁土地
      {
         method:'POST',
-        path:'/plant/land/share/{id}',
-        handler:landService.plt_steal,
+        path:'/animal/land/share/{id}',
+        handler:farmService.plt_steal,
         config:{
             //拦截器
             auth: {
@@ -314,75 +268,4 @@ module.exports = [
             }
         }
     },
-
-     // 更新邀请土地状态
-     {
-        method:'POST',
-        path:'/plant/land/share/put',
-        handler:landService.updateSharelands,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '更新土地邀请解锁状态',
-            notes: '更新土地邀请解锁状态api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
-            }
-        }
-    },
-
-      // 分享进度查询
-     {
-        method:'GET',
-        path:'/plant/land/share/{id}',
-        handler:landService.shareProgress,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '分享进度查询',
-            notes: '分享进度查询Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                params:{
-                     id:Joi.string().required().description("土地ID")
-                }
-            }
-        }
-    },
-      // 分享配置查询
-     {
-        method:'POST',
-        path:'/plant/land/share/settings',
-        handler:landService.shareSettings,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '解锁查询',
-            notes: '解锁查询Api',
-            tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                payload:{
-                    id:Joi.number().required().description('分享功能ID')
-                }
-            }
-        }
-    }
 ]

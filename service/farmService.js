@@ -3,16 +3,15 @@ const dao = require("../dao/dao");
 const landService = require("../service/landService");
 const farmService = require("../service/farmService");
 var userService = require("../service/userService");
-const settings = require('../settings');
 // 植物标签列表 
 exports.tags = async function (request,reply) {
     var user = request.auth.credentials; 
-    await userService.updatePlantCbRecord(request,user);
-    var tags = await dao.find(request,'plantQuality',{hasSeed:1},{},{id:1});
+    await userService.updateAnimalCbRecord(request,user);
+    var tags = await dao.find(request,'animalQuality',{hasSeed:1},{},{id:1});
     var plants = [];
     if (tags.length > 0) {
         var tag = tags[0];
-        var plants = await dao.find(request,'plant',{qualityId:tag.id},{},{sortFlag:1});
+        var plants = await dao.find(request,'animal',{qualityId:tag.id},{},{sortFlag:1});
         if (plants.length > 0) {
             for (var index in plants) {
                 var plant = plants[index];
@@ -35,7 +34,7 @@ exports.tags = async function (request,reply) {
             }
         }
         //  console.log('plants',plants);
-        await landService.hasPlantsUpdate(request,plants,user);
+        await farmService.hasPlantsUpdate(request,plants,user);
     }
     reply({
                 "message":"请求成功！",
@@ -48,7 +47,7 @@ exports.tags = async function (request,reply) {
 // 标签下植物
 exports.tagPlant = async function (request,reply) {  
     var user = request.auth.credentials;
-    var plants = await dao.find(request,'plant',{qualityId:request.params.id},{},{sortFlag:1});
+    var plants = await dao.find(request,'animal',{qualityId:request.params.id},{},{sortFlag:1});
     if (plants.length <= 0 ){
          reply({
                 "message":"该标签下没有植物！",
@@ -59,7 +58,7 @@ exports.tagPlant = async function (request,reply) {
         return;
     }
     // console.log('plants',plants);
-    await landService.hasPlantsUpdate(request,plants,user);
+    await farmService.hasPlantsUpdate(request,plants,user);
     // console.log('plants.length',plants.length);
     if (plants.length > 0) {
         for (var index in plants) {
@@ -91,7 +90,7 @@ exports.tagPlant = async function (request,reply) {
 // 解锁植物 
 exports.unlockPlant = async function (request,reply) { 
     var user = request.auth.credentials;
-    var plant = await dao.findById(request,'plant',request.params.id);
+    var plant = await dao.findById(request,'animal',request.params.id);
     if (plant.free == 1) {
         reply({
                 "message":"免费种子无须合成！",
@@ -113,7 +112,7 @@ exports.unlockPlant = async function (request,reply) {
         return ;
     }
    if (plant.sortFlag > 1) {
-        var preUnlockPlt = await dao.findOne(request,'plant',{sortFlag:plant.sortFlag - 1});       
+        var preUnlockPlt = await dao.findOne(request,'animal',{sortFlag:plant.sortFlag - 1});       
         var preUnlcRecordCount = await dao.findCount(request,'sdCbRecord',{plt_id:preUnlockPlt._id + "",user_id:user._id + ""});
         if (preUnlcRecordCount <= 0) {
             reply({
@@ -166,7 +165,7 @@ exports.unlockPlant = async function (request,reply) {
 // 合成种子
 exports.cbPlant = async function (request,reply) { 
     var user = request.auth.credentials;
-    var plant = await dao.findById(request,'plant',request.params.id);
+    var plant = await dao.findById(request,'animal',request.params.id);
     if (plant.free == 1) {
         reply({
                 "message":"免费种子无须合成！",
@@ -211,10 +210,10 @@ exports.cbPlant = async function (request,reply) {
 }
 exports.userPlantDetail = async function (request,reply) { 
     var user = request.auth.credentials;
-    var plant = await dao.findById(request,'plant',request.params.id);
+    var plant = await dao.findById(request,'animal',request.params.id);
     if (plant) {
-        await landService.hasPlantUpdate(request,plant,user);
-        await landService.harvestDetail(request,plant,user);
+        await farmService.hasPlantUpdate(request,plant,user);
+        await farmService.harvestDetail(request,plant,user);
     }
     reply({
             "message":"查询成功！",
@@ -227,7 +226,7 @@ exports.userPlantDetail = async function (request,reply) {
 // 植物详情
 exports.plantDetail = async function (request,reply) { 
     var user = request.auth.credentials;
-    var plant = await dao.findById(request,'plant',request.params.id);
+    var plant = await dao.findById(request,'animal',request.params.id);
     reply({
             "message":"查询成功！",
             "statusCode":107,
@@ -239,9 +238,8 @@ exports.plantDetail = async function (request,reply) {
 // 种植
 exports.plant = async function (request,reply) { 
     var user = request.auth.credentials;
-    console.log('plant2222');
-    var plant = await dao.findById(request,'plant',request.payload.id);
-   
+    console.log('user',user);
+    var plant = await dao.findById(request,'animal',request.payload.id);
     if (!plant) {
         reply({
             "message":"种子信息缺失！",
@@ -250,8 +248,7 @@ exports.plant = async function (request,reply) {
          });
         return;
     }
-     console.log('plant',plant.animationId);
-    await landService.hasPlantUpdate(request,plant,user);
+    await farmService.hasPlantUpdate(request,plant,user);
     if (plant.unclockStatus != 2) {
          reply({
             "message":"该种子您还未合成无法种植！",
@@ -262,12 +259,14 @@ exports.plant = async function (request,reply) {
         return;
     }
     var land;
+    // console.log('user',user);
     if (request.params.code == 0) {
-        var freeLands = await dao.find(request,'land',{user_id:user._id + "",status:1},{},{code:1});
+        var freeLands = await dao.find(request,'farm',{user_id:user._id + "",status:1},{},{code:1});
+        // console.log('freeLands',freeLands);
         if (freeLands.length <= 0) {
             reply({
                 "message":"您没有闲置的土地可供种植！",
-                "statusCode":1081,
+                "statusCode":108,
                 "status":false
             });
             return;
@@ -276,7 +275,7 @@ exports.plant = async function (request,reply) {
 
     } else {
         // console.log('land code ',request.params.code);
-        land = await dao.findOne(request,'land',{user_id:user._id + "",code:request.params.code});
+        land = await dao.findOne(request,'farm',{user_id:user._id + "",code:request.params.code});
         if (land.status != 1) {
             reply({
                 "message":"该土地当前不可种植！",
@@ -377,10 +376,9 @@ exports.plant = async function (request,reply) {
     harvest.land_code = land.code;
     await dao.save(request,'harvest',harvest);
     /**  生成收益  ****/  
-
-    console.log('plant2222',plant.animationId);
+    console.log('farm222',plant.animationId);
     // console.log('grow',grow);
-    await dao.updateOne(request,'land',{_id:land._id + ""},{status:2,free:0,plantTime:time,harvestTime:time + plant.growTime * 1000,grow_id:grow._id + "",plt_id:plant._id + "",animationId:plant.animationId, pltId:parseInt(plant.id)});
+    await dao.updateOne(request,'farm',{_id:land._id + ""},{status:2,free:0,plantTime:time,harvestTime:time + plant.growTime * 1000,grow_id:grow._id + "",plt_id:plant._id + "",animationId:plant.animationId,pltId:parseInt(plant.id)});
     // console.log('2222time',time);
     // console.log('3333time',land.plantTime);
     reply({
@@ -392,18 +390,8 @@ exports.plant = async function (request,reply) {
 }
 exports.harvestPreview = async function (request,reply) { 
     var user = request.auth.credentials;
-    var land = await dao.findById(request,'land',request.params.id);
-    // console.log('land',land);
-    if (!land) {
-        reply({
-                "message":"土地不存在!",
-                "statusCode":108,
-                "status":false
-        });
-        return;
-    }
-    await landService.updateGrowStataus(request,land);
-    // console.log('land2222',land);
+    var land = await dao.findById(request,'farm',request.params.id);
+    await farmService.updateGrowStataus(request,land);
     if (land.status != 3) {
         reply({
                 "message":"还未成熟！",
@@ -423,7 +411,7 @@ exports.harvestPreview = async function (request,reply) {
 
 exports.plt_steal = async function(request,reply){ 
     var user = request.auth.credentials;
-    var land = await dao.findOne(request,'land',{_id:request.params.id});
+    var land = await dao.findOne(request,'farm',{_id:request.params.id});
     if (!land) {
         reply({
                 "message":"无此土地！",
@@ -443,10 +431,7 @@ exports.plt_steal = async function(request,reply){
         
         return ;
     }
-    console.log('111land.status',land.status);
-    // await landService.updateUserLandGrows(request,stealFromUser);
-    await landService.updateGrowStataus(request,land);
-    console.log('2222land.status',land.status);
+    await farmService.updateUserLandGrows(request,stealFromUser);
     if (land.status != 3){
         reply({
                 "message":"植物还未成熟！",
@@ -467,17 +452,6 @@ exports.plt_steal = async function(request,reply){
         return ;
     }
 
-    var system2 = await dao.findOne(request,'systemSet2',{});
-    if (user.power < system2.tlStlHbUse) {
-        reply({
-                "message":"体力不足！",
-                "statusCode":102,
-                "status":false
-        });
-       
-        return ;
-    }
-    await dao.updateIncOne(request,'user',{_id:user._id + ""},{power:-system2.tlStlHbUse});
     // 走偷取逻辑
     var harvest = await dao.findOne(request,'harvest',{grow_id:land.grow_id + ""});
     var plant = await dao.findById(request,'plant',land.plt_id + "");
@@ -501,8 +475,7 @@ exports.plt_steal = async function(request,reply){
 
     var hb = 0;
     var hbStdSuccessRadm = Math.random();
-    console.log('hbStdSuccessRadm',hbStdSuccessRadm);
-    console.log('plant.stdHbRate',plant.stdHbRate);
+    // console.log('hbStdSuccessRadm',hbStdSuccessRadm);
     if (hbStdSuccessRadm <= plant.stdHbRate) {
         var canStdHb = harvest.priHb * plant.stdHbMaxPp;
         var minHarvHb = harvest.priHb - canStdHb;
@@ -554,7 +527,6 @@ exports.plt_steal = async function(request,reply){
     data.ess = ess;
     data.experience = experience;
     data.hb = hb;
-    console.log('data',data);
     reply({
                 "message":"偷取成功，获得金币"+gold+'个，植物精华'+ ess + "个，经验"+experience + ",红包" + hb +"元。",
                 "statusCode":101,
@@ -563,288 +535,10 @@ exports.plt_steal = async function(request,reply){
     });
 }
 
-
-exports.steal = async function(request,reply){ 
-    var user = request.auth.credentials;
-    var friend = await dao.findById(request,'user',request.params.id);
-    if (!friend) {
-        reply({
-                "message":"无此用户！",
-                "statusCode":102,
-                "status":false
-        });
-
-        return ;
-    }
-    if (friend.username == user.username) {
-        reply({
-                "message":"自己的土地无法偷取！",
-                "statusCode":102,
-                "status":false
-        });
-        
-        return ;
-    }
-
-    var system2 = await dao.findOne(request,'systemSet2',{});
-    if (user.power < system2.tlStlHbUse) {
-        reply({
-                "message":"体力不足！",
-                "statusCode":102,
-                "status":false
-        });
-       
-        return ;
-    }
-    await dao.updateIncOne(request,'user',{_id:user._id + ""},{power:-system2.tlStlHbUse});
-    await landService.updateUserLandGrows(request,friend);
-    await farmService.updateUserLandGrows(request,friend);
-    var harvestLands = await dao.find(request,'land',{user_id:friend._id + "",status:3},{},{harvestTime:1});
-    console.log('111harvestLands',harvestLands);
-    harvestLands = await userService.noStealHarvestLands(request,harvestLands);
-    console.log('222harvestLands',harvestLands);
-    var harvestFarms = await dao.find(request,'farm',{user_id:friend._id + "",status:3},{},{harvestTime:1});
-    console.log('111harvestFarms',harvestFarms);
-    harvestFarms = await userService.noStealHarvestFarms(request,harvestFarms);
-    console.log('222harvestFarms',harvestFarms);
-    var data = {};
-    data.gold = 0;
-    data.ess = 0;
-    data.experience = 0;
-    data.hb = 0;
-    data.recordIds = [];
-    if (harvestLands.length > 0) {
-        for (var index in harvestLands) {
-            var land = harvestLands[index];
-            if (!land) {
-                continue;
-            }
-            if (land.status != 3){ 
-                continue;
-            }
-            await stealLand(request,land,data,1,friend);
-        }
-    }
-
-    if (harvestFarms.length > 0) {
-        for (var index in harvestFarms) {
-            // 偷取
-            var land = harvestFarms[index];
-            if (!land) {
-                continue;
-            }
-            if (land.status != 3){ 
-                continue;
-            }
-             await stealLand(request,land,data,2,friend);
-        }
-    }
-    console.log('data',data);
-    // 更新用户数据
-    await dao.updateIncOne(request,'user',{_id:user._id + ""},{gold:data.gold,experience:data.experience,plt_sessence:data.ess,hb:data.hb});
-    
-    // 总偷取记录
-    var stealRecord = {};
-    stealRecord.username = user.username;
-    stealRecord.user_id = user._id + '';
-    stealRecord.userAvatar = user.avatar;
-    stealLand.userName = user.name;
-    stealLand.userNick = user.nickname;
-    stealRecord.experience = data.experience;
-    stealRecord.plt_ess = data.ess;
-    stealRecord.gold = data.gold;
-    stealRecord.hb = data.hb;
-    stealRecord.createTime = new Date().getTime();
-    stealRecord.stealFrom = friend.username;
-    stealRecord.stealFromName = friend.name;
-    stealRecord.stealFromNick = friend.nickname;
-    stealRecord.fromId = friend._id  + "";
-    stealRecord.stealFrom = friend.avatar;
-    if (data.hb > 0) {
-        stealRecord.hbFlag = 1;
-    }
-    stealRecord.friendRead = 0;
-    await dao.save(request,'stealTotalRecord',stealRecord);
-
-    reply({
-            "message":"偷取成功，获得金币"+data.gold+'个，植物精华'+ data.ess + "个，经验"+data.experience + ",红包" + data.hb +"元。",
-            "statusCode":101,
-            "status":true,
-            "resource":data
-    });
-}
-exports.stealNews = async function(request,reply){  
-    var user = request.auth.credentials;
-    var stealedTotalRecord = await dao.find(request,'stealTotalRecord',{fromId:user._id + "",friendRead:0});
-    var news ;
-    if (stealedTotalRecord.length >0) {
-        news = {};
-        news.hb = 0;
-        news.stealers = [];
-        news.ttRecordIds = [];
-        for (var index in stealedTotalRecord) {
-             var stealedRecord = stealedTotalRecord[index];
-             news.hb = news.hb + stealedRecord.hb;
-             var stealer = {};
-             stealer.user_id = stealedRecord.user_id;
-             stealer.avatar = stealedRecord.userAvatar;
-             stealer.name = stealedRecord.userName;
-             stealer.nickname = stealedRecord.userNick;
-             stealer.username = stealedRecord.username;
-            //  news.stealers.push(stealer);
-             await pushUserNoRepeat(news.stealers,stealer);
-             news.ttRecordIds.push(stealedRecord._id + "");
-         }
-    }
-    if (news == null || news.hb <= 0 ){
-        reply({
-                "message":"无人偷取到您的红包！",
-                "statusCode":108,
-                "status":false
-        });
-       
-        return ;
-    } else {
-        reply( {
-                "message":"查询成功！",
-                "statusCode":107,
-                "status":true,
-                "news":news
-        });
-    }
-}
-async function pushUserNoRepeat(users,user) {
-    if (users.length > 0) {
-        var hasNewUser = false;
-        for (var index in users) {
-            var temUse = users[index];
-            if (temUse.username == user.username) {
-                hasNewUser = true;
-                break;
-            }
-        }
-        if (hasNewUser == false) {
-            users.push(user);
-        }
-    } else {
-        users.push(user);
-    }
-}
-exports.readNews = async function(request,reply){
-    var user = request.auth.credentials;
-    if (request.payload.ids.length > 0) {
-        for (var index in request.payload.ids) {
-            var id = request.payload.ids[index];
-            await dao.updateOne(request,'stealTotalRecord',{_id:id + ""},{friendRead:1});
-        }
-    }
-    reply({
-        "message":"更新成功！",
-        "statusCode":101,
-        "status":true
-    });
-}
-// 
-const stealLand = async function (request,land,data,type,stealFromUser) { 
-    var user = request.auth.credentials;
-    // 偷取
-    // 走偷取逻辑
-    var harvest = await dao.findOne(request,'harvest',{grow_id:land.grow_id + ""});
-    var plant ;
-    if (type == 1) {
-        plant  = await dao.findById(request,'plant',land.plt_id + "");;  
-    } else if (type == 2) {
-        plant  = await dao.findById(request,'animal',land.plt_id + "");;  
-    }
-    if (!plant) {
-        console.log('plant',plant);
-        return;
-    }
-    var experience = 0;
-    var stdExeSuccessRadm = Math.random();
-    // console.log('plant',plant);
-    // console.log('harvest',harvest);
-    // console.log('stdExeSuccessRadm',stdExeSuccessRadm);
-    if (stdExeSuccessRadm <= plant.stdExeRate) {
-        // 本次收获最大偷取量
-        var canStdExe = plant.expirence * plant.stdExeMaxPp;
-        // 本次收获保底量
-        var minHarvExe = plant.experience - canStdExe;
-        // 如果还有偷取的余地
-        if (harvest.experience > minHarvExe) {
-            // 偷取的数量按剩余可偷取量计算
-            experience = Math.round((harvest.experience - minHarvExe) * Math.random());
-        }
-    }
-
-    var hb = 0;
-    var hbStdSuccessRadm = Math.random();
-    // console.log('hbStdSuccessRadm',hbStdSuccessRadm);
-    if (hbStdSuccessRadm <= plant.stdHbRate) {
-        var canStdHb = harvest.priHb * plant.stdHbMaxPp;
-        var minHarvHb = harvest.priHb - canStdHb;
-        if (harvest.hb > minHarvHb) {
-            hb = Math.round((harvest.hb - minHarvHb) * Math.random() * 100) / 100;
-        }
-    }
-    
-    var ess = 0;
-    var essStdSuccessRadm = Math.random();
-    // console.log('essStdSuccessRadm',essStdSuccessRadm);
-    if (essStdSuccessRadm <= plant.stdEssRate) {
-        var canStdEss = harvest.priEss * plant.stdEssMaxPp;
-        var minHarvEss = harvest.priEss - canStdEss;
-        if (harvest.plt_sessence > minHarvEss) {
-            ess = Math.round((harvest.plt_sessence - minHarvEss) * Math.random());
-        }
-    }
-
-    var gold = 0;
-    var canStdGold = harvest.priGold * plant.stdGoldMaxPp;
-    var minHarvGold = harvest.priGold - canStdGold;
-    if (harvest.gold > minHarvGold) {
-        // console.log('gold',gold);
-        gold = Math.round((harvest.gold - minHarvGold) * Math.random());
-    }
-    
-    var stealRecord = {};
-    stealRecord.username = user.username;
-    stealRecord.user_id = user._id + '';
-    stealRecord.experience = experience;
-    stealRecord.plt_ess = ess;
-    stealRecord.gold = gold;
-    stealRecord.hb = hb;
-    stealRecord.createTime = new Date().getTime();
-    stealRecord.stealFrom = stealFromUser.username;
-    stealRecord.fromId = stealFromUser._id  + "";
-    stealRecord.area = 1; // 1 农场 2 牧场
-    stealRecord.land_id = land._id + "";
-    stealRecord.grow_id = land.grow_id;
-    stealRecord.harvest_id = harvest._id + "";
-    stealRecord.type = type;
-    var saveResult = await dao.save(request,'stealRecord',stealRecord);
-    
-    data.gold =  data.gold +  gold;
-    data.ess = data.ess + ess;
-    data.experience = data.experience + experience;
-    data.hb = data.hb + hb;
-    data.recordIds.push(saveResult.ops[0]._id + "");
-     // 更新收益
-    await dao.updateIncOne(request,'harvest',{_id:harvest._id + ""},{gold:-gold,experience:-experience,plt_sessence:-ess,hb:-hb});
-    console.log('-----data------',data);
-}
 exports.harvest = async function (request,reply) { 
     var user = request.auth.credentials;
-    var land = await dao.findById(request,'land',request.params.id);
-    if (!land) {
-        reply({
-                "message":"土地不存在!",
-                "statusCode":108,
-                "status":false
-        });
-        return;
-    }
-    await landService.updateGrowStataus(request,land);
+    var land = await dao.findById(request,'farm',request.params.id);
+    await farmService.updateGrowStataus(request,land);
     // land = await dao.findById(request,'land',request.params.id);
     if (land.status != 3) {
         reply({
@@ -903,7 +597,7 @@ exports.harvest = async function (request,reply) {
     // 更新用户收益
     await dao.updateIncOne(request,'user',{_id:user._id + ""},harvest);
     // 更新土地
-    await dao.updateOne(request,'land',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",animationId:-1,pltId:0});
+    await dao.updateOne(request,'farm',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",pltId:0,animationId:-1});
     // console.log('4444');
     reply({
         "message":"收获成功！!",
@@ -913,9 +607,10 @@ exports.harvest = async function (request,reply) {
     });
 
 }
+
 exports.onekeyHarvest = async function (request,reply) { 
     var user = request.auth.credentials;
-    var lands = await dao.find(request,'land',{user_id:user._id + "",status:3});
+    var lands = await dao.find(request,'farm',{user_id:user._id + "",status:3});
     if (lands.length <= 0 ){
          reply({
             "message":"没有需要收获的土地!",
@@ -928,7 +623,7 @@ exports.onekeyHarvest = async function (request,reply) {
     for (var index in lands) {
         var land = lands[index];
         // var land = await dao.findById(request,'land',request.params.id);
-        await landService.updateGrowStataus(request,land);
+        await farmService.updateGrowStataus(request,land);
         // land = await dao.findById(request,'land',request.params.id);
         // if (land.status != 3) {
         //     reply({
@@ -981,7 +676,7 @@ exports.onekeyHarvest = async function (request,reply) {
         // 更新用户收益
         await dao.updateIncOne(request,'user',{_id:user._id + ""},harvest);
         // 更新土地
-        await dao.updateOne(request,'land',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",pltId:0});
+        await dao.updateOne(request,'farm',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",pltId:0});
     }
     reply({
         "message":"收获成功！!",
@@ -992,7 +687,7 @@ exports.onekeyHarvest = async function (request,reply) {
 // 分享土地
 exports.shareLand = async function(request,reply){  
     var user = request.auth.credentials;
-    var land = await dao.findById(request,'land',request.params.id);
+    var land = await dao.findById(request,'farm',request.params.id);
     if (!land) {
         reply({
             "message":"土地不存在。",
@@ -1021,110 +716,6 @@ exports.shareLand = async function(request,reply){
     });
     return;
 }
-
-
-
-exports.shareProgress = async function(request,reply){ 
-    var shareProgress = await dao.findOne(request,'shareProgress',{land_id:request.params.id});
-    if (!shareProgress) {
-        shareProgress = {};
-        shareProgress.land_id = request.params.id;
-        shareProgress.inviteCount = 0;
-        shareProgress.createTime = new Date().getTime();
-        shareProgress.status = 0; // 0 解锁中 1 解锁完成
-        await dao.save(request,'shareProgress',shareProgress); 
-    }
-    shareProgress.inviteCount = await landUnlockInviteQuery(request,request.params.id);
-    reply({
-        "message":"查询成功!",
-        "statusCode":107,
-        "status":true,
-        "resource":shareProgress
-    });
-}
-exports.updateSharelands = async function(request,reply){  
-    var user = request.auth.credentials;
-    var lands = await dao.find(request,'land',{user_id:user._id + "",status:0});
-    
-    if (lands.length > 0) {
-        for (var index in lands) {
-            var land = lands[index];
-            var landUnlock = await dao.findOne(request,'landUnlocks',{landCode:land.code});
-            if (landUnlock.cdtTpye == 2) {
-                var needInvite = await landUnlockInviteQuery(request,land._id + "");
-                if (needInvite >= landUnlock.inviteCount) {
-                    await dao.updateOne(request,'land',{_id:land._id + ""},{status:1,unlocked:1});
-                }
-            }
-        }
-    }
-
-    var farms = await dao.find(request,'farm',{user_id:user._id + "",status:0});
-    
-    if (farms.length > 0) {
-        for (var index in farms) {
-            var land = farms[index];
-            var landUnlock = await dao.findOne(request,'farmUlcCdts',{landCode:land.code});
-            if (landUnlock.cdtTpye == 2) {
-                var needInvite = await landUnlockInviteQuery(request,land._id + "");
-                if (needInvite >= landUnlock.inviteCount) {
-                    await dao.updateOne(request,'farm',{_id:land._id + ""},{status:1,unlocked:1});
-                }
-            }
-        }
-    }
-    reply({
-        "message":"更新成功!",
-        "statusCode":101,
-        "status":true
-    });
-}
-exports.shareSettings = async function(request,reply){ 
-    var shareSettings;
-    if (request.payload.id == -1) {
-         shareSettings = await dao.findOne(request,'shareSettings',{});
-    } else {
-         shareSettings = await dao.findOne(request,'shareSettings',{id:request.payload.id});
-    }
-   
-     reply({
-        "message":"查询成功!",
-        "statusCode":107,
-        "status":true,
-        resource:shareSettings
-    });
-}
-const landUnlockInviteQuery = function(request,land_id) {
-    var user = request.auth.credentials;
-    var req  = require('urllib-sync').request;
-    var path = settings.host + 'jmmall.farm.register.count';
-    var tugScene = "land-" + land_id;
-    var result = req(path,{
-        method: 'POST',
-        headers: {
-            "Content-Type": "application/json"
-        },
-        data: {
-                "h": {
-                        "t": user.token //当前登录用户token
-                },
-                "d": {
-                    "a": 1,
-                    "scenes": [tugScene]
-                }
-            }
-
-        });
-    console.log('result.data',result.data.toString());
-    var data = JSON.parse(result.data.toString());
-    if (data.c != 200) {
-        return 0;
-    } 
-    console.log('land invite count',data.d.tugScene);
-    return data.d.tugScene;
-} 
-
-
 // 根据合成记录返回植物解锁状态
 exports.hasPlantsUpdate = async function (request,plants,user) { 
     for (var index in plants) {
@@ -1185,34 +776,27 @@ exports.harvestDetail = async function (request,plant,user) {
 exports.updateGrowStataus = async function (request,land) { 
     var time = new Date().getTime();
     if (land.status == 2) {
-     
         if (time >= land.harvestTime) {
             land.status = 3;
-            console.log('land.status == 3');
-            await dao.updateOne(request,'land',{_id:land._id + ""},{status:3});
+            await dao.updateOne(request,'farm',{_id:land._id + ""},{status:3});
          }
     }
-
-    // var plant = await dao.findById(request,'plant',land.plt_id + "");
-    // console.log('plant.animationId',plant.animationId);
-
     if (land.status > 1) {
         if (land.animationId == null) {
-            var plant = await dao.findOne(request,'plant',{_id:land.plt_id + ""});
+            var plant = await dao.findOne(request,'animal',{_id:land.plt_id + ""});
             if (!plant) {
-                return;
+                return ;                
             }
-            await dao.updateOne(request,"land",{_id:land._id + ""},{animationId:plant.animationId});
+            await dao.updateOne(request,"farm",{_id:land._id + ""},{animationId:plant.animationId});
         }
     }
-  
 }
 exports.updateUserLandGrows = async function (request,user) { 
-    var lands = await dao.find(request,'land',{user_id:user._id + ""});
+    var lands = await dao.find(request,'farm',{user_id:user._id + ""});
     if (lands.length > 0) {
         for (var index in lands) {
             var land = lands[index];
-            await landService.updateGrowStataus(request,land);
+            await farmService.updateGrowStataus(request,land);
         }  
     }
 }
