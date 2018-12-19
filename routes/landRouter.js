@@ -98,6 +98,31 @@ module.exports = [
             }
         }
     },
+
+     // 合成植物
+    {
+        method:'GET', 
+        path:'/plant/land/dimond/{id}',
+        handler:landService.unlockLandWithDimond,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '合成植物',
+            notes: '合成植物',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().description('土地ID')
+                }
+            }
+        }
+    },
     // 种植
     {
         method:'POST',

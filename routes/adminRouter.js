@@ -15,7 +15,7 @@ module.exports = [
             },
             description: '管理员登陆接口',
             notes: '管理员登陆接口',
-            //tags: ['api'],
+            tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
@@ -37,7 +37,7 @@ module.exports = [
             },
             description: '获取管理员列表',
             notes: '获取管理员资源列表',
-            //tags: ['api'],
+            tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
@@ -58,7 +58,7 @@ module.exports = [
             },
             description: '管理员添加',
             notes: '管理员添加接口',
-            //tags: ['api'],
+            tags: ['api'],
             validate: {
                 payload: {
                     username: Joi.string().required().description('管理员账号'),
@@ -426,48 +426,7 @@ module.exports = [
         }
     },
 
-    {
-        method:'GET',
-        path:'/admin/tlSystemSet/info',
-        handler:adminService.tlSystemInfo,
-        config:{
-             auth: {
-                strategy: 'bearer',
-                scope: 'ADMIN'
-            },
-            description: '获取体力系统设置',
-            notes: '获取体力系统设置Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
-                
-            }
-        }
-    },
-
       {
-        method:'GET',
-        path:'/admin/tugSystemSet/info',
-        handler:adminService.tugSystemInfo,
-        config:{
-             auth: {
-                strategy: 'bearer',
-                scope: 'ADMIN'
-            },
-            description: '获取系统设置',
-            notes: '获取系统设置Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
-                
-            }
-        }
-    },
-    {
         method:'PUT',
         path:'/admin/systemSet',
         handler:adminService.putSystem,
@@ -490,8 +449,29 @@ module.exports = [
             }
         }
     },
-    
+
     {
+        method:'GET',
+        path:'/admin/tlSystemSet/info',
+        handler:adminService.tlSystemInfo,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '获取体力系统设置',
+            notes: '获取体力系统设置Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+                
+            }
+        }
+    },
+
+     {
         method:'PUT',
         path:'/admin/tlSystemSet',
         handler:adminService.putTlSystem,
@@ -502,7 +482,7 @@ module.exports = [
             },
             description: '更新系统设置',
             notes: '更新系统设置Api',
-            //tags: ['api'],
+            tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
@@ -515,6 +495,29 @@ module.exports = [
         }
     },
 
+      {
+        method:'GET',
+        path:'/admin/tugSystemSet/info',
+        handler:adminService.tugSystemInfo,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '获取系统设置',
+            notes: '获取系统设置Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+                
+            }
+        }
+    },
+  
+    
+   
      {
         method:'PUT',
         path:'/admin/tugSystemSet',
@@ -526,7 +529,104 @@ module.exports = [
             },
             description: '更新系统设置',
             notes: '更新系统设置Api',
-            //tags: ['api'],
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    aplly:Joi.object().description('参数')
+                }
+                
+            }
+        }
+    },
+
+      {
+        method:'GET',
+        path:'/admin/wheel/info',
+        handler:adminService.wheelSetInfo,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '获取系统设置',
+            notes: '获取系统设置Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+                
+            }
+        }
+    },
+     {
+        method:'PUT',
+        path:'/admin/wheelSet',
+        handler:adminService.putWheelSet,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '更新系统设置',
+            notes: '更新系统设置Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                 payload:{
+                    mustRewardType:Joi.number().required().description('必掉奖励类型 1'),
+                    mustRewardGold:Joi.number().required().description("金币"),
+                    mustRewardExe:Joi.number().required().description("体力"),
+                    mustRewardEss:Joi.number().required().description("红包"),
+                    mustRewardHb :Joi.number().required().description("植物精华"),
+                    mustRewardTl:Joi.number().required().description("钻石"),
+                    mustRewardDimond :Joi.number().required().description("类型 "),
+                    wheelFeeGold :Joi.number().required().description("道具ID "),
+                    wheelFeeCoupon :Joi.number().required().description("权重"),
+                    everyCouponDimond :Joi.number().required().description("权重")
+                }
+                
+            }
+        }
+    },
+
+     {
+        method:'GET',
+        path:'/admin/moneyTree/info',
+        handler:adminService.moneyTreeInfo,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '获取系统设置',
+            notes: '获取系统设置Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+                
+            }
+        }
+    },
+     {
+        method:'PUT',
+        path:'/admin/putMoneyTree',
+        handler:adminService.putMoneyTreeInfo,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '更新系统设置',
+            notes: '更新系统设置Api',
+            tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
@@ -980,7 +1080,7 @@ module.exports = [
     },
 
 
-    // 植物详情
+    // 掉落组详情
     {
         method:'GET',
         path:'/admin/drop/{id}',
@@ -990,8 +1090,8 @@ module.exports = [
                 strategy: 'bearer',
                 scope: 'ADMIN'
             },
-            description: '管理员植物列表',
-            notes: '管理员植物列表API',
+            description: '掉落组详情',
+            notes: '掉落组详情Api',
             //tags: ['api'],
             validate: {
                 headers: Joi.object({
@@ -1392,7 +1492,7 @@ module.exports = [
             }
         }
     },
-     // 商品列表
+     // 成长表
     {
         method:'POST',
         path:'/admin/grows/{page}/{size}',
@@ -1421,7 +1521,7 @@ module.exports = [
     },
 
 
-    // 成长表设置
+     // 成长表详情
     {
         method:'GET',
         path:'/admin/grow/{id}',
@@ -1444,7 +1544,7 @@ module.exports = [
             }
         }
     },
-
+       // 更新成长表
       {
         method:'PUT',
         path:'/admin/grow/{id}',
@@ -1477,7 +1577,7 @@ module.exports = [
             }
         }
     },
-
+    // 添加成长表
      {
         method:'POST',
         path:'/admin/grow',
@@ -1508,7 +1608,7 @@ module.exports = [
         }
     },
 
-              // 删除商品
+    // 删除成长表
     {
         method:'DELETE',
         path:'/admin/grow/{id}',
@@ -1533,6 +1633,183 @@ module.exports = [
             }
         }
     },
+
+     // 宠物成长表列表
+    {
+        method:'POST',
+        path:'/admin/pet/grows/{page}/{size}',
+        handler:adminService.petGrows,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '商品列表',
+            notes: '商品列表Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    page:Joi.number().required().description("页数"),
+                    size:Joi.number().required().description('条数')
+                },
+                payload:{
+                    where:Joi.object().description('筛选条件')
+                }
+            }
+        }
+    },
+
+
+
+     // 成长表详情
+    {
+        method:'GET',
+        path:'/admin/pet/grow/{id}',
+        handler:adminService.petGrowDetail,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '商品详情',
+            notes: '商品详情API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("页数")
+                }
+            }
+        }
+    },
+    // 编辑宠物成长表
+      {
+        method:'PUT',
+        path:'/admin/pet/grow/{id}',
+        handler:adminService.putPetGrow,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope:[ 'ADMIN', "SYSTEM_SET_EDIT"]
+            },
+            description: '修改个人成长表',
+            notes: '修改个人成长表Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("商品ID")
+                },
+                payload:{
+                    class:Joi.number().description('等级'),
+                    feedGold:Joi.number().description('喂养所需金币'),
+                    nexClass_needFeed:Joi.number().description('升到下一级所需喂养次数'),
+                    needPropA:Joi.number().description("喂养所需A道具ID"),
+                    needACount:Joi.number().description("喂养所需A道具数量"),
+                    needPropB:Joi.number().description("喂养所需B道具ID"),
+                    needBCount:Joi.number().description("喂养所需B道具数量"),
+                    vitality:Joi.number().description("气质"),
+                    crit_rate:Joi.number().description("暴击率"),
+                    crit_coefficient:Joi.number().description("暴击系数"),
+                    damage:Joi.number().description("普通伤害"),
+                    hp:Joi.number().description("普通伤害"),
+                    upGradeGold:Joi.number().description("升到下一级花费金币"),
+                    nexClassNeedProp:Joi.number().description("升到下一级所需道具ID"),
+                    nexClassNeedCount:Joi.number().description("升到下一级所需道具数量")
+
+                }
+            }
+        }
+    },
+
+    //   "class" : 1,
+    // "feedGold" : 30,
+    // "nexClass_needFeed" : 3,
+    // "needPropA" : 1001,
+    // "needACount" : 3,
+    // "needPropB" : 1002,
+    // "needBCount" : 3,
+    // "nexClassNeedProp" : 1003,
+    // "nexClassNeedCount" : 3,
+    // "upGradeGold" : 1000,
+    // "hp" : 70,
+    // "damage" : 200,
+    // "vitality" : 10,
+    // "crit_rate" : 0.001,
+    // "crit_coefficient" : 150
+
+    // 添加宠物表
+     {
+        method:'POST',
+        path:'/admin/pet/grow',
+        handler:adminService.addPetGrow,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope:[ 'ADMIN', "SYSTEM_SET_EDIT"]
+            },
+            description: '添加掉落组',
+            notes: '添加掉落组Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    class:Joi.number().description('等级'),
+                    feedGold:Joi.number().description('喂养所需金币'),
+                    nexClass_needFeed:Joi.number().description('升到下一级所需喂养次数'),
+                    needPropA:Joi.number().description("喂养所需A道具ID"),
+                    needACount:Joi.number().description("喂养所需A道具数量"),
+                    needPropB:Joi.number().description("喂养所需B道具ID"),
+                    needBCount:Joi.number().description("喂养所需B道具数量"),
+                    vitality:Joi.number().description("气质"),
+                    crit_rate:Joi.number().description("暴击率"),
+                    crit_coefficient:Joi.number().description("暴击系数"),
+                    damage:Joi.number().description("普通伤害"),
+                    hp:Joi.number().description("普通伤害"),
+                    upGradeGold:Joi.number().description("升到下一级花费金币"),
+                    nexClassNeedProp:Joi.number().description("升到下一级所需道具ID"),
+                    nexClassNeedCount:Joi.number().description("升到下一级所需道具数量")
+                }
+            }
+        }
+    },
+
+    // 产出宠物设置
+    {
+        method:'DELETE',
+        path:'/admin/pet/grow/{id}',
+        handler:adminService.delPetGrow,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '删除系统公告',
+            notes: '删除系统公告API',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+    
+                params:{
+                    id:Joi.string().required().description("id"),
+                 
+                }
+            }
+        }
+    },
+ 
+
  
      // 发货订单
     {
@@ -1696,6 +1973,256 @@ module.exports = [
             }
         }
     },
+
+
+
+
+        // 建筑列表
+    {
+        method:'GET',
+        path:'/admin/workArears/{page}/{size}',
+        handler:adminService.works,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '建筑列表',
+            notes: '建筑列表Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    page:Joi.number().required().description("页数"),
+                    size:Joi.number().required().description('条数')
+                }
+            }
+        }
+    },
+    // 建筑详情
+    {
+        method:'GET',
+        path:'/admin/workArea/{id}',
+        handler:adminService.workDetail,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '管理员植物列表',
+            notes: '管理员植物列表API',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("页数")
+                }
+            }
+        }
+    },
+
+   
+    // 更新建筑
+      {
+        method:'PUT',
+        path:'/admin/area/{id}',
+        handler:adminService.putWork,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope:[ 'ADMIN', "SYSTEM_SET_EDIT"]
+            },
+            description: '修改掉落组',
+            notes: '修改掉落组Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("页数")
+                },
+                payload:{
+                    experience:Joi.number().description('产出经验'),
+                    gold:Joi.number().description("产出金币"),
+                    maxHour:Joi.number().description("最大产出时间"),
+                    unlockClass:Joi.number().description("解锁等级"),
+                    dropId:Joi.number().description("掉落组ID")
+                }
+            }
+        }
+    },
+
+
+       // 奖项列表
+    {
+        method:'GET',
+        path:'/admin/rewards/{page}/{size}',
+        handler:adminService.rewards,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '奖项列表',
+            notes: '奖项列表Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    page:Joi.number().required().description("页数"),
+                    size:Joi.number().required().description('条数')
+                }
+            }
+        }
+    },
+    // 奖项详情
+    {
+        method:'GET',
+        path:'/admin/reward/{id}',
+        handler:adminService.rewardDetail,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '管理员植物列表',
+            notes: '管理员植物列表API',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("页数")
+                }
+            }
+        }
+    },
+
+   
+    // 编辑奖项
+      {
+        method:'PUT',
+        path:'/admin/reward/{id}',
+        handler:adminService.putRewards,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope:[ 'ADMIN', "SYSTEM_SET_EDIT"]
+            },
+            description: '修改掉落组',
+            notes: '修改掉落组Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("页数")
+                },
+                payload:{
+                    experience:Joi.number().required().description('经验'),
+                    gold:Joi.number().required().description("金币"),
+                    tl:Joi.number().required().description("体力"),
+                    hb:Joi.number().required().description("红包"),
+                    plt_sessence:Joi.number().required().description("植物精华"),
+                    dimond:Joi.number().required().description("钻石"),
+                    type:Joi.number().required().description("类型 "),
+                    propId:Joi.number().required().description("道具ID "),
+                    weight:Joi.number().required().description("权重")
+                }
+            }
+        }
+    },
+
+
+
+       // 分享列表
+    {
+        method:'GET',
+        path:'/admin/share/{page}/{size}',
+        handler:adminService.shares,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '奖项列表',
+            notes: '奖项列表Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    page:Joi.number().required().description("页数"),
+                    size:Joi.number().required().description('条数')
+                }
+            }
+        }
+    },
+    // 奖项详情
+    {
+        method:'GET',
+        path:'/admin/share/{id}',
+        handler:adminService.shareDetail,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '管理员植物列表',
+            notes: '管理员植物列表API',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("页数")
+                }
+            }
+        }
+    },
+
+   
+    // 编辑奖项
+      {
+        method:'PUT',
+        path:'/admin/share/{id}',
+        handler:adminService.putShare,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope:[ 'ADMIN', "SYSTEM_SET_EDIT"]
+            },
+            description: '修改掉落组',
+            notes: '修改掉落组Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("页数")
+                },
+                payload:{
+                    title:Joi.string().required().description('分享标题'),
+                    thumb:Joi.string().required().description("分享缩略图"),
+                    description:Joi.string().required().description("分享描述"),
+                    webUrl:Joi.string().required().description("分享页面链接")
+                }
+            }
+        }
+    },
+
     //    {
     //     method:'POST',
     //     path:'/admin/seeds',
@@ -2272,7 +2799,7 @@ module.exports = [
             },
             description: '交易记录',
             notes: '交易记录API',
-            //tags: ['api'],
+            tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
@@ -2359,7 +2886,7 @@ module.exports = [
             },
             description: '管理员充值记录',
             notes: '管理员充值记录API',
-            //tags: ['api'],
+            tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')

@@ -49,6 +49,30 @@ module.exports = [
 
     {
         method:'POST',
+        path:'/cathSlave/harvest',
+        handler:catchSlaveService.harvestMyWork,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '工作状态',
+            notes: '工作状态Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                     work_id:Joi.number().required().description("工位ID")
+                }
+            }
+        }
+    },
+
+    {
+        method:'POST',
         path:'/cathSlave/freeSlave',
         handler:catchSlaveService.freeSlave,
         config:{

@@ -1,6 +1,7 @@
 "use strict";
 const dao = require("../dao/dao");
 const landService = require("../service/landService");
+var schedule = require('node-schedule');
 const farmService = require("../service/farmService");
 var userService = require("../service/userService");
 // 植物标签列表 
@@ -262,11 +263,11 @@ exports.plant = async function (request,reply) {
     // console.log('user',user);
     if (request.params.code == 0) {
         var freeLands = await dao.find(request,'farm',{user_id:user._id + "",status:1},{},{code:1});
-        // console.log('freeLands',freeLands);
+        console.log('freeLands',freeLands);
         if (freeLands.length <= 0) {
             reply({
                 "message":"您没有闲置的土地可供种植！",
-                "statusCode":108,
+                "statusCode":1081,
                 "status":false
             });
             return;
@@ -381,6 +382,14 @@ exports.plant = async function (request,reply) {
     await dao.updateOne(request,'farm',{_id:land._id + ""},{status:2,free:0,plantTime:time,harvestTime:time + plant.growTime * 1000,grow_id:grow._id + "",plt_id:plant._id + "",animationId:plant.animationId,pltId:parseInt(plant.id)});
     // console.log('2222time',time);
     // console.log('3333time',land.plantTime);
+    
+    if (user.guanjiaTime && user.guanjiaTime >= time ) { 
+        var addTime = harvest.harvestTime + 2 * 1000;
+        addTime = new Date(addTime);
+        schedule.scheduleJob(addTime, async function(){
+            await farmService.harvestToUser(request,land._id + "");
+        }); 
+    }
     reply({
             "message":"种植成功！",
             "statusCode":107,
@@ -596,9 +605,40 @@ exports.harvest = async function (request,reply) {
     // console.log('2222harvest',harvest)
     // 更新用户收益
     await dao.updateIncOne(request,'user',{_id:user._id + ""},harvest);
-    // 更新土地
-    await dao.updateOne(request,'farm',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",pltId:0,animationId:-1});
+  
     // console.log('4444');
+    var timeStamp = new Date().getTime();
+    if (harvest.hb > 0) {
+        var time = new Date().getTime();
+        var monthString = formatDateMonth(new Date(time));
+        var myMonthHbRecord = await dao.findOne(request,"monthHbRecord",{user_id:user._id + "",monthString:monthString});
+        if (!myMonthHbRecord) {
+            myMonthHbRecord = {};
+            myMonthHbRecord.hb = harvest.hb;
+            myMonthHbRecord.createTime = time;
+            myMonthHbRecord.user_id = user._id + "";
+            myMonthHbRecord.username = user.username;
+            myMonthHbRecord.nickname = user.nickname;
+            myMonthHbRecord.avatar = user.avatar;
+            myMonthHbRecord.name = user.name;
+            myMonthHbRecord.monthString = monthString;
+            await dao.save(request,'monthHbRecord',myMonthHbRecord);
+        } else {
+            await dao.updateIncOne(request,'monthHbRecord',{_id:myMonthHbRecord._id + ""},{hb:harvest.hb});
+        }
+        var hbGetRecord = {};
+        hbGetRecord.createTime = timeStamp;
+        hbGetRecord.monthString = formatDateMonth(new Date(timeStamp));
+        hbGetRecord.hb = harvest.hb;
+        hbGetRecord.type = 2; // 1 种地收获 2 养殖收获 3 偷取红包 4 红包找回 5 抽奖红包
+        hbGetRecord.user_id = user._id + "";
+        hbGetRecord.username = user.username;
+        hbGetRecord.nickname = user.nickname;
+        hbGetRecord.name = user.name;
+        await dao.save(request,'hbGetRecord',hbGetRecord);
+    }
+      // 更新土地
+    await dao.updateOne(request,'farm',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",pltId:0,animationId:-1});
     reply({
         "message":"收获成功！!",
         "statusCode":101,
@@ -608,6 +648,103 @@ exports.harvest = async function (request,reply) {
 
 }
 
+
+exports.harvestToUser = async function(request,land_id){  
+   
+    var land = await dao.findById(request,'farm',land_id);
+    if (!land) {
+        return;
+    }
+     var user = await dao.findById(request,'user',land.user_id);
+    await landService.updateGrowStataus(request,land);
+    if (land.status != 3) {
+       return;
+    }
+    var plant = await dao.findById(request,'plant',land.plt_id + "");
+    var harvest = await dao.findOne(request,'harvest',{grow_id:land.grow_id + ""});
+    if (!harvest) {
+        return;
+    }
+    delete harvest.status;
+    delete harvest.user_id;
+     // 收取掉落组装备
+   if (harvest.props.length > 0) {
+       for (var index in harvest.props) {
+            var prop = harvest.props[index];
+            var prop_id = prop._id + "";
+            var propId = prop.id; 
+            var propInHouse = await dao.findOne(request,'warahouse',{prop_id:prop._id + "",user_id:user._id + ""});
+            // console.log('33333',propInHouse);
+            if (propInHouse) {
+                await dao.updateIncOne(request,'warahouse',{_id:propInHouse._id + ""},{count:prop.count});
+            } else {
+                //prop进warahouse 除去_id、id增加prop_id、propId、user_id、username的全部信息
+                delete prop._id;
+                delete prop.id;
+                propInHouse = prop;
+                propInHouse.prop_id = prop_id;
+                propInHouse.propId = propId;
+                propInHouse.user_id = user._id + "";
+                propInHouse.username = user.username;
+                await dao.save(request,'warahouse',propInHouse);
+            }
+       }
+   }
+    delete harvest.props;
+    if (harvest.hb == 0) {
+         await dao.updateOne(request,'harvest',{_id:harvest._id + ""},{status:1});
+         // 更新土地
+        await dao.updateOne(request,'farm',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",animationId:-1,pltId:0});
+    } else {
+        await dao.updateOne(request,'harvest',{_id:harvest._id + ""},{gold:0,plt_sessence:0,experience:0,hb:0,props:[],});
+    }
+    harvest.hb = 0;
+    delete harvest._id;
+    delete harvest.grow_id;
+    delete harvest.land_id;
+    delete harvest.land_code;
+    // 更新用户收益
+    await dao.updateIncOne(request,'user',{_id:user._id + ""},harvest);
+}
+// 钻石解锁土地
+exports.unlockLandWithDimond = async function (request,reply) {   
+    var user = request.auth.credentials;
+    var land = await dao.findById(request,'farm',request.params.id);
+    if (land.status != 0) {
+        reply({
+            "message":"土地已解锁！",
+            "statusCode":102,
+            "status":false
+         });
+        return;
+    }
+    var landUlcs = await dao.findOne(request,"landUlcCdts",{landCode:land.code});
+    if (landUlcs.cdtTpye != 3) {
+          reply({
+            "message":"土地不可用钻石解锁",
+            "statusCode":102,
+            "status":false
+         });
+        return;
+    }
+    var dimond = landUlcs.dimond;
+    if (user.dimond < dimond) {
+        reply({
+            "message":"您没有那么多钻石！",
+            "statusCode":102,
+            "status":false
+         });
+        return;
+    }
+    await dao.updateIncOne(request,'user',{_id:user._id + ""},{dimond:-dimond});
+    await dao.updateIncOne(request,'farm',{_id:land._id + ""},{status:1,unlocked:1});
+    reply({
+        "message":"解锁成功！",
+        "statusCode":101,
+        "status":true
+    });
+    return;
+}
 exports.onekeyHarvest = async function (request,reply) { 
     var user = request.auth.credentials;
     var lands = await dao.find(request,'farm',{user_id:user._id + "",status:3});

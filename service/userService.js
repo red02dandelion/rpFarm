@@ -52,6 +52,37 @@ exports.updateObjs = async function(request,objs) {
        await userService.updateObj(request,obj);
    }
 }
+
+exports.online = async function(request,reply) {  
+    var user = request.auth.credentials;
+    var time = new Date().getTime();
+    if (user.offlineTime == null) {
+        await dao.updateOne(request,'user',{_id:user._id + ""},{offlineTime:0});
+        user.offlineTime = 0;
+    }
+    if (user.lastTime == null) {
+        user.lastTime = time;
+    }
+    if (time - user.lastTime > 6 * 60 * 1000) {
+        await dao.updateIncOne(request,'user',{_id:user._id + ""},{offlineTime:time - user.lastTime});
+    }
+    await dao.updateOne(request,'user',{_id:user._id + ""},{lastTime:time});
+     reply({"message":"更新成功！","statusCode":101,"status":true});
+}
+exports.updateOffLineTime = async function(request) {  
+    var user = request.auth.credentials;
+    var time = new Date().getTime();
+    if (user.offlineTime == null) {
+        await dao.updateOne(request,'user',{_id:user._id + ""},{offlineTime:0});
+        user.offlineTime = 0;
+    }
+    if (user.lastTime == null) {
+        user.lastTime = time;
+    }
+    if (time - user.lastTime > 6 * 60 * 1000) {
+        await dao.updateIncOne(request,'user',{_id:user._id + ""},{offlineTime:time - user.lastTime});
+    }
+}
 // 用户注册  
 exports.rigister = async function(request,reply) { 
 
@@ -159,6 +190,7 @@ exports.userLogin = async function(request,reply){
     await userService.updateFarmLockstatus(request,user);
     await landService.updateUserLandGrows(request,user);
     await farmService.updateUserLandGrows(request,user);
+    await userService.updateOffLineTime(request);
     await userService.updateTl(request);
     user.nextExe = await nextExe(request,user);
     var growSetting = await dao.findOne(request,'settingUserGrow',{class:user.class});
@@ -375,85 +407,89 @@ exports.serverUpto = async function(request,reply){
         }
         var req = require('urllib-sync').request;
         var path = settings.host + 'jmmall.farm.friendlist';
-        var result = req(path,{
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json"
-            },
-            data: {
-                "h": {
-                     "t": dbUser.token //当前登录用户token
+        try{
+            var result = req(path,{
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json"
                 },
-                "d": {
-                    "a": 1,
-                    "page": 1, //页码，从1开始
-                    "pagesize": 1000000 //分页大小
-                }
-            }
-
+                data: {
+                    "h": {
+                        "t": dbUser.token //当前登录用户token
+                    },
+                    "d": {
+                        "a": 1,
+                        "page": 1, //页码，从1开始
+                        "pagesize": 1000000 //分页大小
+                    }
+                },
+                timeout:30000
             });
-        var data = JSON.parse(result.data.toString());
+
+            var data = JSON.parse(result.data.toString());
         // console.log(data.result_list.length);
         // console.log('data',data);
-        if (data.c == 200 && data.d.l.length > 0) {
-            for (var index in data.d.l) {
-                var friendUser = data.d.l[index];
-                // console.log('index ',index)
-                // console.log('friendUser',friendUser);
-                var friend = await dao.findOne(request,'user',{username:friendUser.userid});
-                if (friend) {
-                    // console.log('addFriend',friend);
-                    var hasFriend = await dao.findOne(request,'friend',{username:dbUser.username,friend:friend.userid});
-                    if (!hasFriend) {
-                        var selfFriendAdd = {};
-                        selfFriendAdd.username = dbUser.username;
-                        selfFriendAdd.createTime = new Date().getTime();
-                        selfFriendAdd.friend = friend.username;
-                        selfFriendAdd.user_id = dbUser._id + "";
-                        selfFriendAdd.friend_id = friend._id + "";
-                        selfFriendAdd.gameFlag = 0;
-                        await dao.save(request,'friend',selfFriendAdd);  
+            if (data.c == 200 && data.d.l.length > 0) {
+                for (var index in data.d.l) {
+                    var friendUser = data.d.l[index];
+                    // console.log('index ',index)
+                    // console.log('friendUser',friendUser);
+                    var friend = await dao.findOne(request,'user',{username:friendUser.userid});
+                    if (friend) {
+                        // console.log('addFriend',friend);
+                        var hasFriend = await dao.findOne(request,'friend',{username:dbUser.username,friend:friend.userid});
+                        if (!hasFriend) {
+                            var selfFriendAdd = {};
+                            selfFriendAdd.username = dbUser.username;
+                            selfFriendAdd.createTime = new Date().getTime();
+                            selfFriendAdd.friend = friend.username;
+                            selfFriendAdd.user_id = dbUser._id + "";
+                            selfFriendAdd.friend_id = friend._id + "";
+                            selfFriendAdd.gameFlag = 0;
+                            await dao.save(request,'friend',selfFriendAdd);  
+                        }
+                        var hasMe = await dao.findOne(request,'friend',{username:friend.username,friend:dbUser.username});
+                        if (hasMe == null) {
+                            var parentFriendAdd = {};
+                            parentFriendAdd.friend = dbUser.username;
+                            parentFriendAdd.createTime = new Date().getTime();
+                            parentFriendAdd.username = friend.username;
+                            parentFriendAdd.friend_id = dbUser._id + "";
+                            parentFriendAdd.user_id = friend._id + "";
+                            parentFriendAdd.gameFlag = 0;
+                            await dao.save(request,'friend',parentFriendAdd);
+                        }
                     }
-                    var hasMe = await dao.findOne(request,'friend',{username:friend.username,friend:dbUser.username});
-                    if (hasMe == null) {
-                        var parentFriendAdd = {};
-                        parentFriendAdd.friend = dbUser.username;
-                        parentFriendAdd.createTime = new Date().getTime();
-                        parentFriendAdd.username = friend.username;
-                        parentFriendAdd.friend_id = dbUser._id + "";
-                        parentFriendAdd.user_id = friend._id + "";
-                        parentFriendAdd.gameFlag = 0;
-                        await dao.save(request,'friend',parentFriendAdd);
-                    }
+                    
                 }
-                
             }
-        }
-        
+
+        }catch(e){
+            console.log("请求好友列表失败");
+        }   
         // 分享功能表
-        
-        // 先定需要查询的土地
+        // // 先定需要查询的土地
 
-        var path2 = settings.host + 'jmmall.farm.register.count';
-        // var dse = JSON.stringify();
-        var result2 = req(path2,{
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json"
-            },
-            data: {
-                "h": {
-                     "t": dbUser.token //当前登录用户token
-                },
-                "d": {
-                    "a": 1,
-                    "scenes": ["landUnlock","game02"]
-                }
-            }
+        // var path2 = settings.host + 'jmmall.farm.register.count';
+        // // var dse = JSON.stringify();
+        // var result2 = req(path2,{
+        //     method: 'POST',
+        //     headers: {
+        //         "Content-Type": "application/json"
+        //     },
+        //     data: {
+        //         "h": {
+        //              "t": dbUser.token //当前登录用户token
+        //         },
+        //         "d": {
+        //             "a": 1,
+        //             "scenes": ["landUnlock","game02"]
+        //         }
+        //     }
 
-        });
-        // console.log('success111222',result2.data.toString());
-        var data = JSON.parse(result2.data.toString());
+        // });
+        // // console.log('success111222',result2.data.toString());
+        // var data = JSON.parse(result2.data.toString());
         // console.log('success111222',data);
         reply({"message":"用户信息同步成功","statusCode":101,"status":true});
     });
@@ -474,6 +510,11 @@ exports.updateLandLockstatus = async function(request,user){
            if (user.class >= ldClsSettings.personClass) {
                await dao.updateOne(request,'land',{_id:land._id + ""},{unlocked:1,status:1});
            }
+        }
+        if (ldClsSettings.cdtTpye == 3 ) { // 1 人物等级解锁 2 邀请好友解锁 3 钻石解锁
+            if (user.appLevel.levelName == "黄金店主" || user.appLevel.levelName == "白银店主" ) {
+                await dao.updateIncOne(request,'land',{_id:land._id + ""},{status:1,unlocked:1});
+            }
         } 
     }
 }
@@ -488,7 +529,12 @@ exports.updateFarmLockstatus = async function(request,user){
            if (user.class >= ldClsSettings.personClass) {
                await dao.updateOne(request,'farm',{_id:land._id + ""},{unlocked:1,status:1});
            }
-        } 
+        }
+         if (ldClsSettings.cdtTpye == 3 ) { // 1 人物等级解锁 2 邀请好友解锁 3 钻石解锁
+            if (user.appLevel.levelName == "黄金店主" || user.appLevel.levelName == "白银店主" ) {
+                await dao.updateIncOne(request,'farm',{_id:land._id + ""},{status:1,unlocked:1});
+            }
+        }
     }
 }
 
@@ -1429,9 +1475,16 @@ exports.buyGuanjia = async function(request,reply) {
          reply({"message":"您已经有管家了，不要重复购买！","statusCode":108,"status":false});
          return;
     }
-    var dimond = systemSet.dimond;
-    
+    if (user.dimond < systemSet.guanjiaDimond) {
+        reply({"message":"您没有那么多钻石！","statusCode":108,"status":false});
+        return;
+    }
+    await dao.updateIncOne(request,'user',{_id:user._id + ""},{dimond:-Number(systemSet.guanjiaDimond)});
+    var guanjiaTime = time + 30 * 24 * 60 * 60 * 1000;
+    await dao.updateOne(request,'user',{_id:user._id + ""},{guanjiaTime:guanjiaTime});
+    reply({"message":"购买成功！","statusCode":107,"status":true});
 }
+
 exports.buyVip = async function(request,reply) { 
     var user = request.auth.credentials;
 
@@ -1518,140 +1571,6 @@ exports.buyVip = async function(request,reply) {
     var trancode;
     var path;
     var walletType = request.payload.walletType;
-<<<<<<< HEAD
-=======
-    // console.log('request.payload.device',request.payload.device);
-    switch (request.payload.device) {
-        case 1:
-            // 微信支付
-            trancode = "SZZF014";
-            walletType = 2;
-            path = "payment/H5pagepay";
-        break;
-        
-        case 2:
-            // 二维码支付宝支付
-            trancode = "SZZF004";
-            walletType = 1;
-            path = "payment/precreate";
-           
-        break;
-         case 3:
-            // 二维码支付
-            trancode = "SZZF004";
-            path = "payment/precreate";
-           
-        break;
-        default:
-            break;
-    }
-
-    // 请求支付
-   
-     var data = {
-        merchantid:"210709",
-        bizOrderNumber:recharge_no,
-        srcAmt:gold,
-        // srcAmt:0.01,
-        redirectUrl:settings.host,
-        notifyUrl:hosts + "/payStatus/vip",
-        goods_desc:"购买Vip"  + request.payload.time + "个月",
-        memo:"购买会员",
-        tranCode:trancode,
-        walletType:walletType,
-        "merchantInput":"alice"
-     };
-    data = JSON.stringify(data);
-    var device = request.payload.device;
-    var nodeUrl = "http://payhub.shuzutech.com:8088/shuzu/" + path;
-    secretUtils.shuzhu_pay(request,reply,data,nodeUrl,trancode,device);
-    return;
-
-
-    var phpData = {};
-     phpData.data =  data;
-     phpData.trancode = trancode;
-     phpData.path = path;
-    //  var php_json = JSON.encrypt();
-    var cooperatorAESKey = "566af22e6f7e414d";
-    var php_json = JSON.stringify(phpData);
-    // console.log('php json is ',php_json);
-
-    var urllib = require('urllib');
-    var path = 'http://47.92.88.214:5512';
-    urllib.request(path, {
-        method: 'POST',
-        headers: {
-            "Content-Type": "application/json"
-        },
-        data: JSON.stringify(phpData),
-        timeout:20000,
-    },
-    async function(err,data,res){
-
-    var dataString = data.toString();
-        // console.log('------data  is ',dataString);
-        var dataArr = dataString.split('/>');
-        // console.log('------dataArr  is ',dataArr);
-        if (dataArr.length > 1) {
-            dataString = dataArr[dataArr.length - 1];
-            // console.log('------after dataString  is ',dataString);
-        }
-        var jsonData = JSON.parse(dataString);
-        // console.log('------data reqcode  is ',jsonData.code);
-            if (jsonData.code == "00000") {
-                var data = JSON.parse(jsonData.data);
-                jsonData.data = data;
-                if (request.payload.device == 1) {
-                    
-                     jsonData.data.url   = "http://paymgmt.shuzutech.com/pay/redirect_pay.php?id=" + jsonData.data.id;
-                    
-                 } 
-                if (request.payload.device == 2) {
-                      jsonData.data.url = jsonData.data.qrcode;
-                }
-                // console.log('--- jsonData.data',jsonData.data);
-                reply({
-                    "message":"已提交支付",
-                    "statusCode":101,
-                    "status":true,
-                    "resource":jsonData.data
-                })
-            } else {
-
-                reply({
-                    "message":jsonData.resMsg,
-                    "statusCode":102,
-                    "status":false
-                });
-            }
-
-        // console.log('------response err is ',err);
-        // console.log('------response data is ',data.toString());
-        // console.log('------response res is ',res);
-    //      if(err) {
-    //         console.log('err is ',err);
-    //     } else { 
-    //     var jsonData = JSON.parse(data);
-        
-    //     console.log('data is ',jsonData);
-    //     console.log('jsonData.data is ',jsonData.data);
-    //     if (jsonData.code == "00000") {
-    //         reply({
-    //             "message":"已提交支付",
-    //             "statusCode":101,
-    //             "status":true,
-    //             "resource":jsonData.data
-    //         })
-    //     } else {
-    //         reply({
-    //             "message":jsonData.resMsg,
-    //             "statusCode":102,
-    //             "status":false
-    //         });
-    //     }
-    // }
->>>>>>> newFeatureWheel
     
     var updateRes = await dao.updateOne(request,'vipRecord',{recharge_no:request.payload.out_trade_no},{pay_status:1});
     // var vipRecord = await dao.findOne(request,'vipRecord',{recharge_no:request.payload.out_trade_no});
@@ -2343,21 +2262,32 @@ exports.warahouseDetail = async function(request,reply){
     });
 }
 exports.rank = async function(request,reply){
+    var user = request.auth.credentials;
     var currentTimeStamp = new Date().getTime();
     var currentDateTime = new Date(currentTimeStamp);
     var monthString = formatDateMonth(currentDateTime);
-    var dayRankRecord = await dao.find(request,'monthHbRecord',{},{},{hb:-1});
+    var where = {};
+    if (request.payload.type == 2) {
+        var friend_ids = [];
+        var friendRecords = await dao.findOne(request,'friend',{user_id:user._id + ""});
+        friend_ids.push(user._id + "");
+        if (friendRecords.length > 0) {
+            for (var findex in friendRecords) {
+                var friendRecord = friendRecords[index];
+                friend_ids.push(friendRecord.from_id + "");
+            }
+        }
+        where = {user_id:{$in:friend_ids}};
+    } 
+    var dayRankRecord = await dao.find(request,'monthHbRecord',where,{},{hb:-1},request.params.size,request.params.page);
+    var sum = await dao.findCount(request,"monthHbRecord",where);
     if (dayRankRecord.length <= 0) {
         reply({"message":"暂未产生红包排行！","statusCode":108,"status":false});
         return;
     }
     //列表
-    var data =dayRankRecord;
-    if(data == null){
-        reply({"message":"查询失败","statusCode":108,"status":false});
-    }else{
-        reply({"message":"查询成功","statusCode":107,"status":true,"resource":{users:data}});
-    }
+    reply({"message":"查询成功","statusCode":107,"status":true,resource:dayRankRecord,sum:sum});
+    
 }
 
 //时间格式化

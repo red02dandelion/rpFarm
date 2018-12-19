@@ -5,7 +5,7 @@ exports.rewards = async function(request,reply){
     var wheelSets = await dao.find(request,'wheelRewards',{});
     // type 1 经验 2 精华 3 金币 4 红包 5 体力 6 钻石 7 道具 8 谢谢参与
     for (var index in wheelSets) {
-        var wheelSet = wheelSet[index];
+        var wheelSet = wheelSets[index];
         if (wheelSet.type == 7) {
             var prop = await dao.findById(request,'prop',wheelSet.prop_id);
             if (prop) {
@@ -14,11 +14,14 @@ exports.rewards = async function(request,reply){
             }
         }
     }
+    var wheelSetting = await dao.findOne(request,'wheelSet',{});
+
     reply({
                 "message":"查询成功！",
                 "statusCode":107,
                 "status":true,
-                "resource":wheelSet
+                "resource":wheelSets,
+                "ext":wheelSetting
         });
 
         return ;
@@ -63,6 +66,9 @@ exports.award = async function(request,reply){
     var wheels = values;
     var select = Choose(wheels);
     var wheelReward = wheelRewards[select];
+    console.log("select",select);
+    console.log("wheelRewards",wheelRewards);
+    console.log("wheelReward",wheelReward);
     var data = {};
     data.type = wheelReward.type;
     data.experience = 0;
@@ -77,8 +83,9 @@ exports.award = async function(request,reply){
     data.feeType = request.payload.type;
     data.feeGold = wheelSet.wheelFeeGold;
     data.feeCoupon = wheelSet.wheelFeeCoupon;
-     // type 1 经验 2 精华 3 金币 4 红包 5 体力 6 钻石 7 道具 8 谢谢参与
-    switch(wheelSet.type) {
+     // type 1 经验 2 精华 3 金币 4 红包 5 体力 6 钻石 7 道具 8 谢谢参与\
+    var count;
+    switch(wheelReward.type) {
         case 1:
             count = wheelReward.experience;
             data.experience = count;
@@ -175,59 +182,11 @@ exports.award = async function(request,reply){
             dao.updateIncOne(request,'user',{_id:user._id},{dimond:count});
             break;
     }
-    switch(select){
-        case 3:
-            // data.status = 0;
-            message = "谢谢参与";
-            number = 0;
-            // dao.updateOne(request,"user",{"_id":user._id+""},{gold:user.gold-gold});
-            dao.updateIncOne(request,'user',{_id:user._id},{gold:fee});
-            break;
-        case 4:
-            message = "恭喜您获得10个金币!";
-            number = 10;
-            fee = fee + 10;
-            dao.updateIncOne(request,'user',{_id:user._id},{gold:fee});
-            break;
-        case 5:
-            message = "恭喜您获得5个狗粮！";
-            number = 0;
-            // fee = fee + 10;
-            isProp = true;
-            prop = await dao.findOne(request,'prop',{type:5});
-             prop.count = 5;
-            dao.updateIncOne(request,'user',{_id:user._id},{gold:fee});
-            // 
-            break;
-        case 0:
-            message = "恭喜您获得30个镰刀！";
-            number = 0;
-            dao.updateIncOne(request,'user',{_id:user._id},{gold:fee});
-            isProp = true;
-            prop = await dao.findOne(request,'prop',{type:2});
-            prop.count = 30;
-            break;
-        case 1:
-            message = "恭喜您获得30个金币！";
-            number = 30;
-            fee += 30;
-            dao.updateIncOne(request,'user',{_id:user._id},{gold:fee});
-            break;
-        case 2:
-            message = "恭喜您获得5个杀虫剂";
-            number = 0;
-            dao.updateIncOne(request,'user',{_id:user._id},{gold:fee});
-            isProp = true;
-            prop = await dao.findOne(request,'prop',{type:3});
-            prop.count = 5;
-            break;
-    }  
-    data.createTime = new Date().getTime();
-    var result = await dao.save(request,"awardRecord",data);
+    
 
     if (data.hb > 0 ) {
         var time = new Date().getTime();
-        var monthString = formatDateMonth(request,new Date(time));
+        var monthString = formatDateMonth(new Date(time));
         var myMonthHbRecord = await dao.findOne(request,"monthHbRecord",{user_id:user._id + "",monthString:monthString});
         if (!myMonthHbRecord) {
             myMonthHbRecord = {};
@@ -238,15 +197,16 @@ exports.award = async function(request,reply){
             myMonthHbRecord.nickname = user.nickname;
             myMonthHbRecord.avatar = user.avatar;
             myMonthHbRecord.name = user.name;
+            myMonthHbRecord.monthString = monthString;
             await dao.save(request,'monthHbRecord',myMonthHbRecord);
         } else {
-            await dao.updateIncOne(request,'monthHbRecord',{_id:myMonthHbRecord._id + ""},{hb:hb});
+            await dao.updateIncOne(request,'monthHbRecord',{_id:myMonthHbRecord._id + ""},{hb:data.hb});
         }
 
         var hbGetRecord = {};
-        hbGetRecord.createTime = timeStamp;
-        hbGetRecord.monthString = formatDateMonth(new Date(timeStamp));
-        hbGetRecord.hb = harvest.hb;
+        hbGetRecord.createTime = time;
+        hbGetRecord.monthString = formatDateMonth(new Date(time));
+        hbGetRecord.hb = data.hb;
         hbGetRecord.type = 1; // 5 种地收获 2 养殖收获 3 偷取红包 4 红包找回 5 抽奖红包
         hbGetRecord.user_id = user._id + "";
         hbGetRecord.username = user.username;
@@ -263,6 +223,27 @@ exports.award = async function(request,reply){
     return ;
 
 }
+
+/**
+ * 概率计算方法
+ */
+function Choose(probs){  
+    var total = 0;  
+    //首先计算出概率的总值，用来计算随机范围  
+    for(var i=0;i<probs.length;i++){  
+        total+=probs[i];  
+    }  
+    var rd  = Math.random() * total;  
+    for(var j=0;j<probs.length;j++)  
+        {  
+        if(rd<probs[j]){  
+            return j;  
+        }else{  
+            rd-=probs[j];  
+        }  
+    }  
+    return probs.length-1;  
+} 
 
 //时间格式化
 function format(fmt,data) { //author: meizz 

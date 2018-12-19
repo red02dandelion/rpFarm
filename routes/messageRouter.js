@@ -15,7 +15,7 @@ module.exports = [
             },
             description: '公告列表',
             notes: '公告列表Api',
-            //tags: ['api'],
+            tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')

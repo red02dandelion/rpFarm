@@ -4,6 +4,7 @@ const landService = require("../service/landService");
 const farmService = require("../service/farmService");
 var userService = require("../service/userService");
 const settings = require('../settings');
+var schedule = require('node-schedule');
 // 植物标签列表 
 exports.tags = async function (request,reply) {
     var user = request.auth.credentials; 
@@ -88,6 +89,9 @@ exports.tagPlant = async function (request,reply) {
                 "resource":{plants:plants}
     });
 }
+
+
+
 // 解锁植物 
 exports.unlockPlant = async function (request,reply) { 
     var user = request.auth.credentials;
@@ -241,7 +245,6 @@ exports.plant = async function (request,reply) {
     var user = request.auth.credentials;
     console.log('plant2222');
     var plant = await dao.findById(request,'plant',request.payload.id);
-   
     if (!plant) {
         reply({
             "message":"种子信息缺失！",
@@ -383,12 +386,61 @@ exports.plant = async function (request,reply) {
     await dao.updateOne(request,'land',{_id:land._id + ""},{status:2,free:0,plantTime:time,harvestTime:time + plant.growTime * 1000,grow_id:grow._id + "",plt_id:plant._id + "",animationId:plant.animationId, pltId:parseInt(plant.id)});
     // console.log('2222time',time);
     // console.log('3333time',land.plantTime);
+    if (user.guanjiaTime && user.guanjiaTime >= time ) { 
+       var addTime = harvest.harvestTime + 2 * 1000;
+        addTime = new Date(addTime);
+        schedule.scheduleJob(addTime, async function(){
+            await landService.harvestToUser(request,land._id + "");
+        }); 
+    }
+    
     reply({
             "message":"种植成功！",
             "statusCode":107,
             "status":true,
             "resource":{land:land}
     });
+}
+
+// 钻石解锁土地
+exports.unlockLandWithDimond = async function (request,reply) {   
+    var user = request.auth.credentials;
+    var land = await dao.findById(request,'land',request.params.id);
+    if (land.status != 0) {
+        reply({
+            "message":"土地已解锁！",
+            "statusCode":102,
+            "status":false
+         });
+        return;
+    }
+   
+    var landUlcs = await dao.findOne(request,"landUlcCdts",{landCode:land.code});
+    if (landUlcs.cdtTpye != 3) {
+          reply({
+            "message":"土地不可用钻石解锁",
+            "statusCode":102,
+            "status":false
+         });
+        return;
+    }
+    var dimond = landUlcs.dimond;
+    if (user.dimond < dimond) {
+        reply({
+            "message":"您没有那么多钻石！",
+            "statusCode":102,
+            "status":false
+         });
+        return;
+    }
+    await dao.updateIncOne(request,'user',{_id:user._id + ""},{dimond:-dimond});
+    await dao.updateIncOne(request,'land',{_id:land._id + ""},{status:1,unlocked:1});
+    reply({
+        "message":"解锁成功！",
+        "statusCode":101,
+        "status":true
+    });
+    return;
 }
 exports.harvestPreview = async function (request,reply) { 
     var user = request.auth.credentials;
@@ -420,7 +472,63 @@ exports.harvestPreview = async function (request,reply) {
             "resource":{harvest:harvest}
     });
 }
-
+exports.harvestToUser = async function(request,land_id){  
+    
+    var land = await dao.findById(request,'land',land_id);
+    if (!land) {
+        return;
+    }
+    var user = await dao.findById(request,'user',land.user_id);
+    await landService.updateGrowStataus(request,land);
+    if (land.status != 3) {
+       return;
+    }
+    var plant = await dao.findById(request,'plant',land.plt_id + "");
+    var harvest = await dao.findOne(request,'harvest',{grow_id:land.grow_id + ""});
+    if (!harvest) {
+        return;
+    }
+    delete harvest.status;
+    delete harvest.user_id;
+     // 收取掉落组装备
+   if (harvest.props.length > 0) {
+       for (var index in harvest.props) {
+            var prop = harvest.props[index];
+            var prop_id = prop._id + "";
+            var propId = prop.id; 
+            var propInHouse = await dao.findOne(request,'warahouse',{prop_id:prop._id + "",user_id:user._id + ""});
+            // console.log('33333',propInHouse);
+            if (propInHouse) {
+                await dao.updateIncOne(request,'warahouse',{_id:propInHouse._id + ""},{count:prop.count});
+            } else {
+                //prop进warahouse 除去_id、id增加prop_id、propId、user_id、username的全部信息
+                delete prop._id;
+                delete prop.id;
+                propInHouse = prop;
+                propInHouse.prop_id = prop_id;
+                propInHouse.propId = propId;
+                propInHouse.user_id = user._id + "";
+                propInHouse.username = user.username;
+                await dao.save(request,'warahouse',propInHouse);
+            }
+       }
+   }
+    delete harvest.props;
+    if (harvest.hb == 0) {
+         await dao.updateOne(request,'harvest',{_id:harvest._id + ""},{status:1});
+         // 更新土地
+        await dao.updateOne(request,'land',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",animationId:-1,pltId:0});
+    } else {
+        await dao.updateOne(request,'harvest',{_id:harvest._id + ""},{gold:0,plt_sessence:0,experience:0,hb:0,props:[],});
+    }
+    harvest.hb = 0;
+    delete harvest._id;
+    delete harvest.grow_id;
+    delete harvest.land_id;
+    delete harvest.land_code;
+    // 更新用户收益
+    await dao.updateIncOne(request,'user',{_id:user._id + ""},harvest);
+}
 exports.plt_steal = async function(request,reply){ 
     var user = request.auth.credentials;
     var land = await dao.findOne(request,'land',{_id:request.params.id});
@@ -662,6 +770,35 @@ exports.steal = async function(request,reply){
     stealRecord.stealFrom = friend.avatar;
     if (data.hb > 0) {
         stealRecord.hbFlag = 1;
+        var timeStamp = new Date().getTime();
+        var time = new Date().getTime();
+        var monthString = formatDateMonth(new Date(time));
+        var myMonthHbRecord = await dao.findOne(request,"monthHbRecord",{user_id:user._id + "",monthString:monthString});
+        if (!myMonthHbRecord) {
+            myMonthHbRecord = {};
+            myMonthHbRecord.hb = data.hb;
+            myMonthHbRecord.createTime = time;
+            myMonthHbRecord.user_id = user._id + "";
+            myMonthHbRecord.username = user.username;
+            myMonthHbRecord.nickname = user.nickname;
+            myMonthHbRecord.avatar = user.avatar;
+            myMonthHbRecord.name = user.name;
+            myMonthHbRecord.monthString = monthString;
+            await dao.save(request,'monthHbRecord',myMonthHbRecord);
+        } else {
+            await dao.updateIncOne(request,'monthHbRecord',{_id:myMonthHbRecord._id + ""},{hb:data.hb});
+        }
+        var hbGetRecord = {};
+        hbGetRecord.createTime = timeStamp;
+        hbGetRecord.monthString = formatDateMonth(new Date(timeStamp));
+        hbGetRecord.hb = data.hb;
+        hbGetRecord.type = 3; // 1 种地收获 2 养殖收获 3 偷取红包 4 红包找回 5 抽奖红包
+        hbGetRecord.user_id = user._id + "";
+        hbGetRecord.username = user.username;
+        hbGetRecord.nickname = user.nickname;
+        hbGetRecord.name = user.name;
+        await dao.save(request,'hbGetRecord',hbGetRecord);
+
     }
     stealRecord.friendRead = 0;
     await dao.save(request,'stealTotalRecord',stealRecord);
@@ -902,27 +1039,31 @@ exports.harvest = async function (request,reply) {
     // console.log('2222harvest',harvest)
     // 更新用户收益
     await dao.updateIncOne(request,'user',{_id:user._id + ""},harvest);
-    var timeStamp = new Date().getTime();
+   
     if (harvest.hb > 0) {
         var time = new Date().getTime();
-        var monthString = formatDateMonth(request,new Date(time));
+        console.log('time',time);
+        var monthString = formatDateMonth(new Date(time));
+        console.log('monthString',monthString);
         var myMonthHbRecord = await dao.findOne(request,"monthHbRecord",{user_id:user._id + "",monthString:monthString});
         if (!myMonthHbRecord) {
             myMonthHbRecord = {};
-            myMonthHbRecord.hb = data.hb;
+            myMonthHbRecord.hb = harvest.hb;
             myMonthHbRecord.createTime = time;
             myMonthHbRecord.user_id = user._id + "";
             myMonthHbRecord.username = user.username;
             myMonthHbRecord.nickname = user.nickname;
             myMonthHbRecord.avatar = user.avatar;
             myMonthHbRecord.name = user.name;
+            myMonthHbRecord.monthString = monthString;
             await dao.save(request,'monthHbRecord',myMonthHbRecord);
         } else {
-            await dao.updateIncOne(request,'monthHbRecord',{_id:myMonthHbRecord._id + ""},{hb:hb});
+            await dao.updateIncOne(request,'monthHbRecord',{_id:myMonthHbRecord._id + ""},{hb:harvest.hb});
         }
         var hbGetRecord = {};
-        hbGetRecord.createTime = timeStamp;
-        hbGetRecord.monthString = formatDateMonth(new Date(timeStamp));
+        hbGetRecord.createTime = time;
+        hbGetRecord.monthString = formatDateMonth(new Date(time));
+        console.log('hbGetRecord.monthString',hbGetRecord.monthString);
         hbGetRecord.hb = harvest.hb;
         hbGetRecord.type = 1; // 1 种地收获 2 养殖收获 3 偷取红包 4 红包找回 5 抽奖红包
         hbGetRecord.user_id = user._id + "";
@@ -1128,29 +1269,36 @@ const landUnlockInviteQuery = function(request,land_id) {
     var req  = require('urllib-sync').request;
     var path = settings.host + 'jmmall.farm.register.count';
     var tugScene = "land-" + land_id;
-    var result = req(path,{
-        method: 'POST',
-        headers: {
-            "Content-Type": "application/json"
-        },
-        data: {
-                "h": {
-                        "t": user.token //当前登录用户token
+    try {
+        var result = req(path,{
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json"
+            },
+            data: {
+                    "h": {
+                            "t": user.token //当前登录用户token
+                    },
+                    "d": {
+                        "a": 1,
+                        "scenes": [tugScene]
+                    }
                 },
-                "d": {
-                    "a": 1,
-                    "scenes": [tugScene]
-                }
-            }
+                timeout:30000,
 
-        });
-    console.log('result.data',result.data.toString());
-    var data = JSON.parse(result.data.toString());
-    if (data.c != 200) {
+
+            });
+        console.log('result.data',result.data.toString());
+        var data = JSON.parse(result.data.toString());
+        if (data.c != 200) {
+            return 0;
+        } 
+        console.log('land invite count',data.d.tugScene);
+        return data.d.tugScene;
+    }catch(e) {
+        console.log('查询邀请失败！');
         return 0;
-    } 
-    console.log('land invite count',data.d.tugScene);
-    return data.d.tugScene;
+    }
 } 
 
 
@@ -1246,7 +1394,7 @@ exports.updateUserLandGrows = async function (request,user) {
     }
 }
 var formatDateMonth = function(date) {
-
+        console.log('date',date);
         var year = date.getFullYear();
         console.log('year  to string ',year.toString());
         var month = date.getMonth() + 1;

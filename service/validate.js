@@ -50,7 +50,7 @@ exports.validateFunc = function(token, request, callback){
                 // throw e;
                 return;
             }
-            // console.log('decoded is',decoded);
+            console.log('decoded is',decoded);
             //console.log('request.url.path is',request.url.path);
             //对比访问的url是否与token中的url相等
             if(decoded[0]!=request.url.path){
