@@ -6,9 +6,9 @@ var landService = require("../service/landService");
 exports.worm = async function(request,reply){ 
     var user = request.auth.credentials;
     if (request.params.id) {
-        console.log('id is',request.params.id);
+        // console.log('id is',request.params.id);
     } else {
-        console.log('kong');
+        // console.log('kong');
     }
     var areca = await dao.findOne(request,'areca',{_id:request.params.id});
     if (!areca) {
@@ -412,18 +412,18 @@ exports.harvest = async function(request,reply){
     }
     // var seed = await dao.findById(request,'seed',land.seed._id + "");
     
-    //  console.log('----------land',land);
-    //  console.log('land.seasopm',land.season);
+    //  // console.log('----------land',land);
+    //  // console.log('land.seasopm',land.season);
     var curSeason;
     var seed = await dao.findById(request,'seed',land.seed._id + "");
     for (var index in seed.seasons) {
         var seasonInfo = seed.seasons[index];
-         console.log('index:'+index + ",seasoninfo.season" +seasonInfo.season + ",land.seasion" + land.season);
+         // console.log('index:'+index + ",seasoninfo.season" +seasonInfo.season + ",land.seasion" + land.season);
         if (seasonInfo.season == land.season) {
             curSeason = seasonInfo;
         }
     }
-    // console.log('curSeason',curSeason);
+    // // console.log('curSeason',curSeason);
     if (!curSeason) {
         reply({
                 "message":"该种子还未种植",
@@ -458,7 +458,7 @@ exports.harvest = async function(request,reply){
     var updateUser = await dao.updateIncOne(request,'user',{_id:user._id  },{gold:gold});
 
     var seasonHour = seed.seasons[0].hour;
-    // console.log('seasonHour',seasonHour);、
+    // // console.log('seasonHour',seasonHour);、
     var nextSeason;
     // 当前时间超过最后季成熟时间 收获后直接死亡 
     if (new Date().getTime() - land.plant_time >= seasonHour * seed.seasons.length * 60 * 60 * 1000) {
@@ -468,7 +468,7 @@ exports.harvest = async function(request,reply){
     } else {
         nextSeason = Math.floor( (new Date().getTime() - land.plant_time)  / (seasonHour * 60 * 60 * 1000)) + 1;
     }
-    console.log('nextSeason is',nextSeason);
+    // console.log('nextSeason is',nextSeason);
     
     // 生成当前季到将要跳转的季节之间的收益
     for (var i = curSeason.season + 1;i < nextSeason;i ++) {
@@ -499,7 +499,7 @@ exports.harvest = async function(request,reply){
     // 更新日常任务状态
     const currentTime = new Date().getTime();
     if (isLastSeason == true) {
-        console.log('isLastSeason last');
+        // console.log('isLastSeason last');
         var updateGrouth = await dao.updateOne(request,'grouth',{_id:land.grouth_id+""},{end_time:currentTime});
         var updateLandRes = await dao.updateOne(request,'land',{_id:land._id  },{
             status:3,
@@ -512,8 +512,8 @@ exports.harvest = async function(request,reply){
             stealed_count:0
         });
     } else {
-        console.log('not last currentTime is ',currentTime);
-        console.log('now is',new Date().getTime());
+        // console.log('not last currentTime is ',currentTime);
+        // console.log('now is',new Date().getTime());
         var updateLandRes = await dao.updateOne(request,'land',{_id:land._id  },{
             status:1,
             // plant_time:new Date().getTime(),
@@ -855,10 +855,10 @@ var orderFormat = function(date) {
 var formatDateMonth = function(date) {
 
         var year = date.getFullYear();
-        console.log('year  to string ',year.toString());
+        // console.log('year  to string ',year.toString());
         var month = date.getMonth() + 1;
         month = (month < 10) ? '0' + month : month;
-         console.log('month  to string ',month.toString());
+         // console.log('month  to string ',month.toString());
       
 
        

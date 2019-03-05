@@ -21,8 +21,8 @@ exports.saveImg = function(imgName,path,data,log){
     var fs = require('fs');
     var fileName = new Date().getTime()+"original."+imgName.split(".")[imgName.split(".").length-1];
 
-    console.log(data);
-    console.log(fileName);
+    // console.log(data);
+    // console.log(fileName);
     return new Promise(function(resolve, reject){
         fs.exists(path,function(exist){
             if(!exist){
@@ -79,12 +79,12 @@ exports.saveImg = function(imgName,path,data,log){
 }
 
 exports.uploadFile = async function(request,reply){
-    console.log(request.payload);
+    // console.log(request.payload);
     var path = "/upload/img/";
     var imgName = request.payload.localUrl?request.payload.localUrl:request.payload.Filename;
     var result = await uploadFile.saveImg(imgName,__dirname+"/.."+path,request.payload.imgFile,request.server.log);
     if(result){
-        console.log(hosts+path+result);
+        // console.log(hosts+path+result);
         reply({"error":0,"url":path+result});
     }else{
         reply({"error":1,"message":"上传失败"});

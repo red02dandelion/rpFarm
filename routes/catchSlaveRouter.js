@@ -5,7 +5,7 @@ module.exports = [
     {
         method:'POST',
         path:'/cathSlave/cath',
-        handler:catchSlaveService.cathSlave,
+        handler:catchSlaveService.catchSlave,
         config:{
             //拦截器
             auth: {
@@ -117,6 +117,28 @@ module.exports = [
             }
         }
     },
+
+     {
+        method:'GET',
+        path:'/cathSlave/newTips',
+        handler:catchSlaveService.newTips,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '新提示',
+            notes: '新提示Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
+
      // 随机用户
     {
         method:'POST',

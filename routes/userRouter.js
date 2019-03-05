@@ -25,6 +25,73 @@ module.exports = [
             }
         }
     },
+
+    
+    // 用户信息
+    {
+        method:'GET',
+        path:'/user/info',
+        handler:userService.userinfo,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '用户登陆接口',
+            notes: '用户登陆接口',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
+
+     // 用户登录
+    {
+        method:'GET',
+        path:'/user/lands',
+        handler:userService.lands,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '用户登陆接口',
+            notes: '用户登陆接口',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
+
+         // 用户登录
+    {
+        method:'GET',
+        path:'/user/farms',
+        handler:userService.farms,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '用户登陆接口',
+            notes: '用户登陆接口',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
     // 用户登录
     {
         method:'GET',
@@ -775,7 +842,7 @@ module.exports = [
             }, 
             description: '获取用户好友列表',
             notes: '获取用户好友列表',
-            //tags: ['api'],
+            tags: ['api'],
             validate: {
                  headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')

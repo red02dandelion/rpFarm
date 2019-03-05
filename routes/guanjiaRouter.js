@@ -1,19 +1,20 @@
 const Joi = require('joi');
-const petService = require('../service/petService');
+const guanjiaService = require('../service/guanjiaService');
+
 module.exports = [
-     // 用户登录
+   // 管家状态
     {
         method:'GET',
-        path:'/pet/dog',
-        handler:petService.dog,  // 我要写个一等潇洒人物
+        path:'/guanjia/status',
+        handler:guanjiaService.guanjiaStatus,
         config:{
             //拦截器
             auth: {
                 strategy: 'bearer',
                 scope: 'USER'
             },
-            description: '用户登陆接口',
-            notes: '用户登陆接口',
+            description: '植物详情',
+            notes: '植物详情Api',
             tags: ['api'],
             validate: {
                 headers: Joi.object({
@@ -22,38 +23,19 @@ module.exports = [
             }
         }
     },
-        {
-        method:'GET',
-        path:'/pet/feed',
-        handler:petService.feedDog,  
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '用户登陆接口',
-            notes: '用户登陆接口',
-            tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
-            }
-        }
-    },
+    // 管家状态
     {
         method:'GET',
-        path:'/pet/upgrade',
-        handler:petService.upDog,  
+        path:'/guanjia/start',
+        handler:guanjiaService.startGuanjia,
         config:{
             //拦截器
             auth: {
                 strategy: 'bearer',
                 scope: 'USER'
             },
-            description: '用户登陆接口',
-            notes: '用户登陆接口',
+            description: '植物详情',
+            notes: '植物详情Api',
             tags: ['api'],
             validate: {
                 headers: Joi.object({
@@ -62,26 +44,45 @@ module.exports = [
             }
         }
     },
-      {
+      // 管家状态
+    {
         method:'GET',
-        path:'/pet/fight/{enemyId}',
-        handler:petService.fight,  
+        path:'/guanjia/harvest',
+        handler:guanjiaService.gjharvest,
         config:{
             //拦截器
             auth: {
                 strategy: 'bearer',
                 scope: 'USER'
             },
-            description: '用户登陆接口',
-            notes: '用户登陆接口',
+            description: '植物详情',
+            notes: '植物详情Api',
             tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                params:{
-                    enemyId:Joi.string().required().description('对手userid')
-                }
+                }).unknown()
+            }
+        }
+    },
+       // 管家状态
+    {
+        method:'POST',
+        path:'/guanjia/harvest/view',
+        handler:guanjiaService.confirmHarvest,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '植物详情',
+            notes: '植物详情Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
             }
         }
     }

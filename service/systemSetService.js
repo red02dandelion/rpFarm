@@ -22,7 +22,7 @@ exports.updateSystemSet = async function(request,reply){
     var set = await dao.findById(request,"systemSet",request.params.id);
     var result = await dao.updateOne(request,"systemSet",{"_id":request.params.id},systemSet);
     var user =  await dao.find(request,"user",{embattle:0});
-    console.log(user);
+    // console.log(user);
     if(result==null){
         reply({"message":"更新系统信息失败","statusCode":106,"status":false});
     }else{
@@ -85,7 +85,7 @@ exports.updateSystemSet = async function(request,reply){
                     goldSum=goldSum+stealGoldNumber
                 }
                 var reduce=plantSums+goldSum;
-                    //console.log(reduce);
+                    //// console.log(reduce);
                     reply({"message":"更新系统信息成功,大圣来袭偷取总果子数"+reduce,"statusCode":105,"status":true});
                 },threeTime);
             var users =  await dao.find(request,"user",{embattle:1});
@@ -127,7 +127,7 @@ exports.getSystemSetList = async function(request,reply){
 //                 }else{
 //                     dao.updateOne(request,"plant",{"id":friendPlant[j]._id+""},{number:friendPlant[j].number-friendPlant[j].number*sum});
 //                     var stealSum=friendPlant[j].number*sum;
-//                     console(stealSum);
+//                     // console(stealSum);
 //                 }     
 //             }
 //             if(friendPlant[j].pond>=6 && friendPlant[j].pond<=10){

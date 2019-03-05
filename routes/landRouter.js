@@ -151,6 +151,7 @@ module.exports = [
         }
     },
 
+
     // 解锁植物
     {
         method:'GET',
@@ -200,6 +201,31 @@ module.exports = [
             }
         }
     },
+
+      // 一键收获预览
+    {
+        method:'POST',
+        path:'/plant/totalHarvest',
+        handler:landService.totalHarvestPreview,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '收获预览',
+            notes: '收获预览',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    lands:Joi.array().description('土地IDS')
+                }
+            }
+        }
+    },
     // 收获
     {
         method:'GET',
@@ -226,7 +252,7 @@ module.exports = [
     },
     // 一键收获
     {
-        method:'GET',
+        method:'POST',
         path:'/plant/oneKeyHarvest',
         handler:landService.onekeyHarvest,
         config:{
@@ -241,8 +267,11 @@ module.exports = [
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
-            }
+                }).unknown(),
+                payload:{
+                    lands:Joi.array().required().description('阅读偷取记录id')
+                }
+            } 
         }
     },
         // 偷红包

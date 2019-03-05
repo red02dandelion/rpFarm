@@ -3,15 +3,23 @@ const dao = require("../dao/dao");
 var petService = require("../service/petService");
 exports.dog = async function(request,reply){   
     var user = request.auth.credentials;
-    await petService.addAllDogs(request);
+    // await petService.addAllDogs(request);
+    // if (user.petUnlocked != 1) {
+    //      reply({"message":"查询失败，宠物未解锁！","statusCode":108,"status":false});
+    //      return;
+    // }
     var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
     if(!dog) {
          reply({"message":"查询失败，未发现宠物！","statusCode":108,"status":false});
          return;
     }
     var dogSetting = await dao.findOne(request,'settingPetGrow',{class:dog.class});
+    if (!dogSetting) {
+        reply({"message":"查询失败，缺少宠物配置！","statusCode":108,"status":false});
+        return;
+    }
     var dogInfo = await petService.updateDog(request,dog,dogSetting);
-    console.log('dogInfo',dogInfo);
+    // console.log('dogInfo',dogInfo);
     reply({"message":"查询成功！","statusCode":101,"status":true,resource:dogInfo});
 }
 exports.addAllDogs = async function(request){
@@ -36,6 +44,10 @@ exports.addAllDogs = async function(request){
 }
 exports.feedDog = async function(request,reply){   
     var user = request.auth.credentials;
+    // if (user.petUnlocked != 1) {
+    //      reply({"message":"宠物未解锁！","statusCode":108,"status":false});
+    //      return;
+    // }
     var systemSet = await dao.findOne(request,'systemSet',{});
     var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
     var dogDetail = await dao.findOne(request,'settingPetGrow',{class:dog.class});
@@ -45,7 +57,7 @@ exports.feedDog = async function(request,reply){
     }
 
     var dogFeedCount = await dao.findCount(request,'dogFeedRecord',{dog_id:dog._id + "",dogClass:dog.class});
-    if (dogFeedCount >= systemSet.nexClass_needFeed) {
+    if (dogFeedCount >= dogDetail.nexClass_needFeed) {
         reply({"message":"请先升级！","statusCode":102,"status":false});
         return;
     }
@@ -57,13 +69,16 @@ exports.feedDog = async function(request,reply){
     }
     if (dogDetail.needPropA != -1) {
         warahouseA = await dao.findOne(request,'warahouse',{propId:dogDetail.needPropA,user_id:user._id +"",count:{$gte:dogDetail.needACount}});
+        console.log('warahouseA',warahouseA);
         if (!warahouseA) {
             reply({"message":"缺少狗粮！","statusCode":102,"status":false});
             return;
         }
     }
     if (dogDetail.needPropB != -1) {
+        
         warahouseB = await dao.findOne(request,'warahouse',{propId:dogDetail.needPropB,user_id:user._id +"",count:{$gte:dogDetail.needBCount}});
+        console.log('warahouseB',warahouseB);
         if (!warahouseB) {
             reply({"message":"缺少狗粮！","statusCode":102,"status":false});
             return;
@@ -105,16 +120,22 @@ exports.feedDog = async function(request,reply){
     feedRecord.nickname = user.nickname;
     feedRecord.user_id = user._id + "";
     await dao.save(request,'feedRecord',feedRecord);
-    if (dogFeedCount >= systemSet.nexClass_needFeed && dogDetail.nexClassNeedProp == -1 && dogDetail.upGradeGold == 0) {
+    if (dogFeedCount >= dogDetail.nexClass_needFeed && dogDetail.nexClassNeedProp == -1 && dogDetail.upGradeGold == 0) {
         await dao.updateIncOne(request,'dog',{_id:dog._id + ""},{class:1});
     }
-    console.log('bsd',bsd);
+    // console.log('bsd',bsd);
     reply({"message":"喂养成功","statusCode":101,"status":true});
 }
 exports.upDog = async function(request,reply){    
-    var user = request.auth.credentials; var systemSet = await dao.findOne(request,'systemSet',{});
+    var user = request.auth.credentials; 
+    
+
+    var systemSet = await dao.findOne(request,'systemSet',{});
     var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
+   
+
     var dogDetail = await dao.findOne(request,'settingPetGrow',{class:dog.class});
+
     if (!dogDetail) {
         reply({"message":"缺少配置！","statusCode":102,"status":false});
         return;
@@ -125,6 +146,12 @@ exports.upDog = async function(request,reply){
         return;
     }
     var warahouseProp;
+
+    var dogFeedCount = await dao.findCount(request,'dogFeedRecord',{dog_id:dog._id + "",dogClass:dog.class});
+    if (dogFeedCount < dogDetail.nexClass_needFeed) {
+        reply({"message":"喂养次数不足无法升级！","statusCode":102,"status":false});
+        return;
+    }
     if (user.gold < dogDetail.upGradeGold) {
         reply({"message":"金币不足！","statusCode":102,"status":false});
         return;
@@ -157,12 +184,12 @@ exports.upDog = async function(request,reply){
     await dao.save(request,'goldUseRecord',goldUseRecord);
 
     await dao.updateIncOne(request,'dog',{_id:dog._id + ""},{class:1});
-    reply({"message":"喂养成功","statusCode":101,"status":true});
+    reply({"message":"升级成功","statusCode":101,"status":true});
 }
 exports.updateDog = async function(request,dog,dogDetail){
     var user = request.auth.credentials;
     var userGrowSetting = await dao.findOne(request,'settingUserGrow',{class:user.class});
-    // console.log();
+    // // console.log();
     var systemSet = await dao.findOne(request,'systemSet',{});
     var time = new Date().getTime();
     var minute = Math.round((time - dog.updateTime ) / 1000 / 60);
@@ -174,11 +201,11 @@ exports.updateDog = async function(request,dog,dogDetail){
         petDamage = dogDetail.damage * systemSet.debuffCoefficient;
         damageRate = systemSet.debuffCoefficient;
     }
-    console.log('userGrowSetting',userGrowSetting);
+    // console.log('userGrowSetting',userGrowSetting);
     var totalBaseDamage =  userGrowSetting.damage + petDamage; // 总伤害 = 人的伤害 + 宠物的实时伤害
-    console.log('totalBaseDamage',totalBaseDamage);
+    // console.log('totalBaseDamage',totalBaseDamage);
     var ordernaryDamage = totalBaseDamage * (userGrowSetting.vitality + dogDetail.vitality) * systemSet.ordernaryDmgCoe; // 普通伤害 = 总伤害 * 总气质 * 全局普通伤害系数A；
-    console.log('ordernaryDamage',ordernaryDamage);
+    // console.log('ordernaryDamage',ordernaryDamage);
     var crit_Damage = ordernaryDamage * dogDetail.crit_coefficient * systemSet.critDmgCoe; // 暴击伤害 = 普通伤害 * 宠物暴击系数 * 全局暴击伤害系数B；
     var dogInfo = {};
     dogInfo.damage = petDamage;    // 伤害
@@ -235,19 +262,22 @@ exports.updateDog = async function(request,dog,dogDetail){
         if (dogDetail.nexClassNeedProp != -1) {
             var needProp = {}; 
             var prop = await dao.findOne(request,'prop',{id:dogDetail.nexClassNeedProp});
-            needProp.img = prop.img;
-            needProp.needCount = dogDetail.nexClassNeedCount;
-            needProp.hasCount = 0;
-            var warahouseProp = await dao.findOne(request,'warahouse',{propId:prop.id,user_id:user._id + ""});
-            if (warahouseProp) {
-                 needProp.hasCount = warahouseProp.count;
+            if (prop) {
+                needProp.img = prop.img;
+                needProp.needCount = dogDetail.nexClassNeedCount;
+                needProp.hasCount = 0;
+                var warahouseProp = await dao.findOne(request,'warahouse',{propId:prop.id,user_id:user._id + ""});
+                if (warahouseProp) {
+                    needProp.hasCount = warahouseProp.count;
+                }
+                spendProps.push(needProp);
             }
-            spendProps.push(needProp);
+           
         }
     }
     dogInfo.spendProps = spendProps;
     await dao.updateOne(request,'dog',{_id:dog._id + ""},{updateTime:time,bsd:bsd});
-    console.log('dogInfo',dogInfo);
+    // console.log('dogInfo',dogInfo);
     return dogInfo;
 }
 
@@ -299,7 +329,7 @@ exports.fight = async function(request,reply){
     var process = [];
     var selfAttFlag = user.username == firAttacker.username ? 1 : 0;
     var fightProcess = await fightRound(request,myFighter,enemyFighter,process,selfAttFlag);
-    console.log("fightProcess",fightProcess);
+    // console.log("fightProcess",fightProcess);
     if (fightProcess == null) {
          reply({"message":"战斗失败，胜负未分！","statusCode":102,"status":false});
          return;
@@ -337,7 +367,7 @@ exports.fightWithUser = async function(request,enemy){
     var process = [];
     var selfAttFlag = user.username == firAttacker.username ? 1 : 0;
     var fightProcess = await fightRound(request,myFighter,enemyFighter,process,selfAttFlag);
-    console.log("fightProcess",fightProcess);
+    // console.log("fightProcess",fightProcess);
     if (fightProcess == null) {
         var fightRecord = {};
         fightRecord.status = false;
@@ -352,17 +382,17 @@ exports.fightWithUser = async function(request,enemy){
     fightRecord.winner = fightProcess.winner;
     fightRecord.process = fightProcess.fightProcess;
     var result =  await dao.save(request,'fightRecord',fightRecord);
-    console.log('result.ops[0]',result.ops[0]);
+    // console.log('result.ops[0]',result.ops[0]);
     return result.ops[0];
 }
 
 async function fightRound(request,myFighter,enemyFighter,fightProcess,selfAttFlag){ 
-    // console.log("fightProcess",fightProcess);
+    // // console.log("fightProcess",fightProcess);
     var attacker = enemyFighter;
     var sufferer = myFighter;
-    // console.log("selfAttFlag",selfAttFlag);
-    // console.log("myFighter1111",myFighter);
-    // console.log("enemyFighter1111",enemyFighter);
+    // // console.log("selfAttFlag",selfAttFlag);
+    // // console.log("myFighter1111",myFighter);
+    // // console.log("enemyFighter1111",enemyFighter);
     if (selfAttFlag === 1) {
         attacker = myFighter;
         sufferer = enemyFighter;
@@ -373,8 +403,8 @@ async function fightRound(request,myFighter,enemyFighter,fightProcess,selfAttFla
         realDamage = attacker.crit_Damage;
     }
     sufferer.hp = sufferer.hp - realDamage;
-    // console.log("myFighter1111",myFighter);
-    // console.log("enemyFighter1111",enemyFighter);
+    // // console.log("myFighter1111",myFighter);
+    // // console.log("enemyFighter1111",enemyFighter);
     
     var myFighterCopy = copy(myFighter);
     var enemyFighterCopy = copy(enemyFighter);
@@ -390,9 +420,9 @@ async function fightRound(request,myFighter,enemyFighter,fightProcess,selfAttFla
     process.sufferer = suffererCopy;
     fightProcess.push(process);
     var process = {winner:attacker.username,fightProcess:fightProcess};
-    // console.log('process111',process);
+    // // console.log('process111',process);
     if (sufferer.hp <= 0) {
-        // console.log('process222',process);
+        // // console.log('process222',process);
         sufferer.hp = 0;
         return process;
     } else {
@@ -409,12 +439,12 @@ function copy(obj){
     return newobj;
 }
 // exports.fightRound = async function(request,myFighter,enemyFighter,fightProcess,selfAttFlag){ 
-//     console.log("fightProcess",fightProcess);
+//     // console.log("fightProcess",fightProcess);
 //     var attacker = enemyFighter;
 //     var sufferer = myFighter;
-//     console.log("selfAttFlag",selfAttFlag);
-//     console.log("myFighter1111",myFighter);
-//     console.log("enemyFighter1111",enemyFighter);
+//     // console.log("selfAttFlag",selfAttFlag);
+//     // console.log("myFighter1111",myFighter);
+//     // console.log("enemyFighter1111",enemyFighter);
 //     if (selfAttFlag === 1) {
 //         attacker = myFighter;
 //         sufferer = enemyFighter;
@@ -425,8 +455,8 @@ function copy(obj){
 //         realDamage = attacker.crit_Damage;
 //     }
 //     sufferer.hp = sufferer.hp - realDamage;
-//     console.log("myFighter1111",myFighter);
-//     console.log("enemyFighter1111",enemyFighter);
+//     // console.log("myFighter1111",myFighter);
+//     // console.log("enemyFighter1111",enemyFighter);
 //     var process = {};
 //     process.realDamage = realDamage;
 //     process.selfFlag = selfAttFlag;
@@ -436,9 +466,9 @@ function copy(obj){
 //     process.sufferer = sufferer;
 //     fightProcess.push(process);
 //     var process = {winner:attacker.username,fightProcess:fightProcess};
-//     console.log('process111',process);
+//     // console.log('process111',process);
 //     if (sufferer.hp <= 0) {
-//         console.log('process222',process);
+//         // console.log('process222',process);
 //         return process;
 //     } else {
 //         selfAttFlag = 1 - selfAttFlag;

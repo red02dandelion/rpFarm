@@ -31,12 +31,21 @@ exports.rewards = async function(request,reply){
 exports.award = async function(request,reply){
     var user = request.auth.credentials;
     var wheelSet = await dao.findOne(request,'wheelSet',{});
+    // if (user.wheelUnlocked != 1) {
+    //     reply({
+    //                 "message":"转盘还未解锁！",
+    //                 "statusCode":102,
+    //                 "status":false
+    //     });
+
+    //     return ;
+    // }
     if (request.payload.type == 1) {  // 1 消耗金币 2 消耗优惠券
         if (user.gold < wheelSet.wheelFeeGold) {
             reply({
                     "message":"您没有那么多金币！",
                     "statusCode":102,
-                    "status":true
+                    "status":false
             });
 
             return ;
@@ -67,8 +76,8 @@ exports.award = async function(request,reply){
     var select = Choose(wheels);
     var wheelReward = wheelRewards[select];
     console.log("select",select);
-    console.log("wheelRewards",wheelRewards);
-    console.log("wheelReward",wheelReward);
+    // console.log("wheelRewards",wheelRewards);
+    // console.log("wheelReward",wheelReward);
     var data = {};
     data.type = wheelReward.type;
     data.experience = 0;
@@ -126,6 +135,8 @@ exports.award = async function(request,reply){
             count = wheelReward.propCount;
             data.propCount = count;
             var prop = await dao.findOne(request,'prop',{id:wheelReward.propId});
+            prop.count = count;
+            data.prop = prop;
             var prop_id = prop._id + "";
             var propId = prop.id; 
             if (prop) {
@@ -148,37 +159,44 @@ exports.award = async function(request,reply){
             
     }
     data.mustRewardType = wheelSet.mustRewardType;
+    var mustData = {};
     // type 1 经验 2 精华 3 金币 4 红包 5 体力 6 钻石 7 道具 8 谢谢参与
     switch(wheelSet.mustRewardType) {
         case 1:
             count = wheelSet.mustRewardExe;
-            data.experience =  data.experience + count;
+            // data.experience =  data.experience + count;
+            mustData.experience = count;
             dao.updateIncOne(request,'user',{_id:user._id},{experience:count});
             break;
         case 2:
             count = wheelSet.mustRewardEss;
-            data.plt_sessence = data.plt_sessence + count;
+            // data.plt_sessence = data.plt_sessence + count;
+            mustData.plt_sessence = count;
             dao.updateIncOne(request,'user',{_id:user._id},{plt_sessence:count});
             
             break;
         case 3:
             count = wheelSet.mustRewardGold;
-            data.gold = data.gold + count;
+            // data.gold = data.gold + count;
+            mustData.gold = count;
             dao.updateIncOne(request,'user',{_id:user._id},{gold:count});
             break;
         case 4:
             count = wheelSet.mustRewardHb;
-            data.hb = data.hb + count;
+            // data.hb = data.hb + count;
+            mustData.hb = count;
             dao.updateIncOne(request,'user',{_id:user._id},{hb:count});
             break;
         case 5:
             count = wheelSet.mustRewardTl;
-            data.plt_sessence = data.plt_sessence + count;
+            // data.plt_sessence = data.plt_sessence + count;
+            mustData.tl = count;
             dao.updateIncOne(request,'user',{_id:user._id},{plt_sessence:count});
             break;
         case 6:
             count = wheelSet.mustRewardDimond;
-            data.dimond = data.dimond + count;
+            // data.dimond = data.dimond + count;
+            mustData.dimond = count;
             dao.updateIncOne(request,'user',{_id:user._id},{dimond:count});
             break;
     }
@@ -203,6 +221,8 @@ exports.award = async function(request,reply){
             await dao.updateIncOne(request,'monthHbRecord',{_id:myMonthHbRecord._id + ""},{hb:data.hb});
         }
 
+       
+
         var hbGetRecord = {};
         hbGetRecord.createTime = time;
         hbGetRecord.monthString = formatDateMonth(new Date(time));
@@ -214,11 +234,13 @@ exports.award = async function(request,reply){
         hbGetRecord.name = user.name;
         await dao.save(request,'hbGetRecord',hbGetRecord);
     }
+
+    console.log("data",data);
     reply({
                 "message":"抽奖成功",
                 "statusCode":101,
                 "status":true,
-                "resource":{select:select,data:data}
+                "resource":{select:select,data:mustData}
      });
     return ;
 
@@ -320,10 +342,10 @@ var orderFormat = function(date) {
 var formatDateMonth = function(date) {
 
         var year = date.getFullYear();
-        console.log('year  to string ',year.toString());
+        // console.log('year  to string ',year.toString());
         var month = date.getMonth() + 1;
         month = (month < 10) ? '0' + month : month;
-         console.log('month  to string ',month.toString());
+         // console.log('month  to string ',month.toString());
       
 
        

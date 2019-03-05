@@ -60,7 +60,7 @@ exports.robotTask =  async function(){
 exports.todayMoneyTask = async  function(){  
     var request = {server:app.server} ;
     //  var users =  await dao.find(request,'user',{});
-    // console.log('yser us ',users);;
+    // // console.log('yser us ',users);;
     // return;
    
     schedule.scheduleJob('00 59 23 * * *', async function(){  
@@ -77,7 +77,7 @@ exports.todayMoneyTask = async  function(){
         var JobTime = new Date(today24clockTimeStamp);
         // schedule.scheduleJob(JobTime, async function(){ 
         var users = await dao.find(request,'user',{});
-        console.log('usres is',users);
+        // console.log('usres is',users);
         for (var index in users) {
             var user = users[index];
             var todayMoneyRes = await dao.find(request,'todayMoney',{date:{$gt:today00ClockStamp,$lt:today24clockTimeStamp},username:user.username});
@@ -94,7 +94,7 @@ exports.todayMoneyTask = async  function(){
                 todayMoney.date = new Date().getTime();
                 todayMoney.today24clockTimeStamp = today24clockTimeStamp;
                 todayMoney.username = user.username;
-                console.log("todayMoney",todayMoney);
+                // console.log("todayMoney",todayMoney);
                 await dao.save(request,'todayMoney',todayMoney);
                 continue;
             }
@@ -131,7 +131,7 @@ exports.todayMoneyTask = async  function(){
             todayMoney.date = new Date().getTime();
             todayMoney.username = user.username;
             // todayMoney.
-            console.log("todayMoney",todayMoney);
+            // console.log("todayMoney",todayMoney);
             await dao.save(request,'todayMoney',todayMoney);
             }
         // });
@@ -143,7 +143,7 @@ exports.todayMoneyTask = async  function(){
 
 }
 exports.scheduleCronstyle =  async function(){ 
-    console.log("131231");
+    // console.log("131231");
     //  var request = {server:app.server};
 }
 var format = function(date) {

@@ -1,4 +1,5 @@
 var settings = require('../settings.js');
+var userService = require("../service/userService");
 const dao = require("../dao/dao");
 // 近三天红包记录
 exports.latestHbRecord = async function(request,reply){
@@ -27,6 +28,7 @@ exports.latestHbRecord = async function(request,reply){
 exports.backHb = async function(request,reply){ 
     var user = request.auth.credentials;
     let todayString = format1("yyyy/M/d",new Date());
+    
     // var hbBackToday = 0;
     var now00 = new Date(new Date().setHours(0,0,0,0)).getTime();
     var now24 = now00 + 24 * 60 * 60 * 1000;
@@ -75,11 +77,18 @@ exports.offLineReward = async function(request,reply){
 }
 exports.harvestReward = async function(request,reply){  
     var user = request.auth.credentials;
+    var time = new Date().getTime();
     var moneyTreeSet = await dao.findOne(request,'moneyTreeSet',{});
     var data = {};
     let todayString = format1("yyyy/M/d",new Date());
     await offLineRewardCount(request,data,moneyTreeSet);
-
+    // console.log('harvestData11',data);
+    var num = data.dimond + data.gold + data.experience + data.tl + data.hb + data.plt_sessence;
+    if (data.props.length <= 0 && num <= 0) {
+        console.log("没有收获！");
+        reply({"message":"没有收获！","statusCode":108,"status":false,resource:data});
+        return;
+    }
     await dao.updateIncOne(request,'user',{_id:user._id + ""},{experience:data.experience,gold:data.gold,tl:data.tl,dimond:data.dimond,hb:data.hb,plt_sessence:data.plt_sessence});
     // 收取掉落组装备
    if (data.props.length > 0) {
@@ -88,7 +97,7 @@ exports.harvestReward = async function(request,reply){
             var prop_id = prop._id + "";
             var propId = prop.id; 
             var propInHouse = await dao.findOne(request,'warahouse',{prop_id:prop._id + "",user_id:user._id + ""});
-            // console.log('33333',propInHouse);
+            // // console.log('33333',propInHouse);
             if (propInHouse) {
                 await dao.updateIncOne(request,'warahouse',{_id:propInHouse._id + ""},{count:prop.count});
             } else {
@@ -110,16 +119,19 @@ exports.harvestReward = async function(request,reply){
     offlineRecord.username = user.username;
     offlineRecord.dayString = todayString;
     await dao.save(request,'offLineRecord',offlineRecord);
-    await dao.updateOne(request,'user',{_id:user._id + ""},{offlineTime:0});
+    await dao.updateOne(request,'user',{_id:user._id + ""},{offlineTime:0,lastTime:time});
+    // console.log('harvestData22',data);
     reply({"message":"收取成功！","statusCode":107,"status":true,resource:data});
 }
 const offLineRewardCount = async function(request,data,moneyTreeSet) {
-     var user = request.auth.credentials;
-     console.log("moneyTreeSet",moneyTreeSet);
+    var user = request.auth.credentials;
+    await userService.updateOffLineTime(request);
+     // console.log("moneyTreeSet",moneyTreeSet);
      var cycleHour = moneyTreeSet.offlineRewardHour;
      var rewardTime = parseInt(user.offlineTime /(cycleHour * 60 * 60 * 1000));
     //   var rewardTime = parseInt(user.offlineTime /(60 * 1000));
-     console.log('rewardTime',rewardTime);
+    console.log('offlineTime',user.offlineTime);
+    console.log('rewardTime',rewardTime);
      data.experience = Math.round(rewardTime * moneyTreeSet.experience);
      data.gold = Math.round(rewardTime * moneyTreeSet.gold);;
      data.tl = Math.round(rewardTime * moneyTreeSet.tl);;
@@ -131,19 +143,19 @@ const offLineRewardCount = async function(request,data,moneyTreeSet) {
     var dropGruops = await dao.find(request,'dropGroups',{id:moneyTreeSet.dropId});
     if (dropGruops.length > 0) {
         for (var i = 0; i < rewardTime; i ++) {
-            // console.log('i',i);
+            // // console.log('i',i);
             for (var index in dropGruops) {
                 if (props.length >= moneyTreeSet.maxPorp) {
                     break;
                 }
                 var group = dropGruops[index];
-                // console.log('index',index);
+                // // console.log('index',index);
                 var sucRand = Math.random();
                 // 掉落
                 if (sucRand <= group.rate) {
                     var count = Math.round(Math.random() * (group.max - group.min) + group.min);
                     var prop = await dao.findOne(request,'prop',{id:group.propId});
-                    // console.log('222222',prop);
+                    // // console.log('222222',prop);
                     if (prop) {
                         prop.count = count;
                         await pushPropNoRepeat(props,prop);
@@ -156,13 +168,13 @@ const offLineRewardCount = async function(request,data,moneyTreeSet) {
         }
     }
     data.props = props;
-    console.log('data',data);
+    // console.log('data',data);
 }
 const hbInviteQuery = function(request,user_id,dayString) {
     var user = request.auth.credentials;
     var req  = require('urllib-sync').request;
-    var path = settings.host + 'jmmall.farm.register.count';
-    var tugScene = "hbBack-" + user_id + dayString;
+    var path = settings.host +  'jmmall.farm.register.count';
+    var tugScene = "hbBack-" + user_id + "-" +  dayString;
     try{ 
         var result = req(path,{
             method: 'POST',
@@ -182,15 +194,15 @@ const hbInviteQuery = function(request,user_id,dayString) {
 
 
             });
-        console.log('result.data',result.data.toString());
+        // console.log('result.data',result.data.toString());
         var data = JSON.parse(result.data.toString());
         if (data.c != 200) {
             return 0;
         } 
-        console.log('count',data.d.tugScene);
+        // console.log('count',data.d.tugScene);
             return data.d.tugScene;
     }catch(e){
-        console.log('查询邀请失败！');
+        // console.log('查询邀请失败！');
         return 0;
     }
 } 
@@ -274,10 +286,10 @@ var orderFormat = function(date) {
 var formatDateMonth = function(date) {
 
     var year = date.getFullYear();
-    console.log('year  to string ',year.toString());
+    // console.log('year  to string ',year.toString());
     var month = date.getMonth() + 1;
     month = (month < 10) ? '0' + month : month;
-        console.log('month  to string ',month.toString());
+        // console.log('month  to string ',month.toString());
         return year.toString()  + "-" + month.toString();
 }
 

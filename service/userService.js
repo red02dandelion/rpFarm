@@ -12,8 +12,10 @@ var landService = require("../service/landService");
 var farmService = require("../service/farmService");
 // var secretUtils = require("../service/secretUtils");
 const settings = require('../settings');
+const catchSlaveService = require('../service/catchSlaveService');
 var hosts = settings.host+":"+settings.hostPort;
 const grouthService = require("../service/grouthService");
+const functionService = require('../service/functionService');
 //  
 exports.saveTest = async function(request,reply) { 
     for (var index = 1;index < 10;index ++){
@@ -21,25 +23,25 @@ exports.saveTest = async function(request,reply) {
         testObjg.name = index + "";
         testObjg.id = index;
         var saveRes = await dao.save(request,'test',testObjg);
-        // console.log('saveRes',saveRes.ops[0]);
+        // // console.log('saveRes',saveRes.ops[0]);
     }
     reply('ojbk');
 } 
 exports.updateTest = async function(request,reply) { 
     var tests = await dao.find(request,'test',{});
     var test0 = tests[0];
-    // console.log('tests',tests);
-    // console.log('test0',test0);
+    // // console.log('tests',tests);
+    // // console.log('test0',test0);
     await userService.updateObj(request,test0);
-    // console.log('test0',test0);
+    // // console.log('test0',test0);
     await userService.updateObjs(request,tests);
-    // console.log('tests',tests);
+    // // console.log('tests',tests);
     // await userService.updateObj(test);
     var upadteAllRes = await dao.updateAll(request,'test',{},{up:"12313"});
     
-    // console.log('upadteAllRes',upadteAllRes);
+    // // console.log('upadteAllRes',upadteAllRes);
     var upadteOneRes = await dao.updateOne(request,'test',{},{up:"12313"});
-    // console.log('upadteOneRes',upadteOneRes);
+    // // console.log('upadteOneRes',upadteOneRes);
     
     reply('ojbk');
 }
@@ -52,7 +54,6 @@ exports.updateObjs = async function(request,objs) {
        await userService.updateObj(request,obj);
    }
 }
-
 exports.online = async function(request,reply) {  
     var user = request.auth.credentials;
     var time = new Date().getTime();
@@ -101,7 +102,7 @@ exports.rigister = async function(request,reply) {
             return;
         }
         parent = findRes[0];
-        // console.log('parent is',parent);
+        // // console.log('parent is',parent);
         friends = [parent._id];
         var hasFriend = false;
         if (user.friends && user.friends.length > 0) {
@@ -184,12 +185,14 @@ exports.userLogin = async function(request,reply){
     delete user.raw_password;
     delete user.scope;
     delete user.hmac_password;
-    // console.log('loginuser11111',user);
+    // // console.log('loginuser11111',user);
     // delete user.hmac_password;
     await userService.updateLandLockstatus(request,user);
     await userService.updateFarmLockstatus(request,user);
     await landService.updateUserLandGrows(request,user);
+    // await landService.updateSharelands(request);
     await farmService.updateUserLandGrows(request,user);
+    // await farmService.updateSharelands(request);
     await userService.updateOffLineTime(request);
     await userService.updateTl(request);
     user.nextExe = await nextExe(request,user);
@@ -208,19 +211,98 @@ exports.userLogin = async function(request,reply){
     var lands = await dao.find(request,'land',{user_id:user._id + ""});
     var farms = await dao.find(request,'farm',{user_id:user._id + ""});
     var cf = await dao.findOne(request,'systemSet',{});
+    var tlCf = await dao.findOne(request,'systemSet2',{});
     var landUlcCdts = await dao.find(request,'landUlcCdts',{},{},{code:1});
     var farmUlcCdts = await dao.find(request,'farmUlcCdts',{},{},{code:1});
+    var shareCf = await dao.find(request,'shareSettings',{});
+    var unlockCf = await dao.find(request,'playerSetting',{});
     var currentTime = new Date().getTime();
     var data = {
         user:user,
         lands:lands,
         farms:farms,
         cf:cf,
+        tlCf:tlCf,
+        shareCf:shareCf,
         landUlcCdts:landUlcCdts,
         farmUlcCdts:farmUlcCdts,
+        currentTime:currentTime,
+        unlockCf:unlockCf
+    };
+    reply({"message":"用户登陆成功","statusCode":101,"status":true,"resource":data});
+}
+
+
+//登录验证
+exports.userinfo = async function(request,reply){
+    var user = request.auth.credentials;
+    delete user.password;
+    delete user.token;
+    delete user.raw_password;
+    delete user.scope;
+    delete user.hmac_password;
+    // // console.log('loginuser11111',user);
+    // delete user.hmac_password;
+    await userService.updateOffLineTime(request);
+    await userService.updateTl(request);
+    user.nextExe = await nextExe(request,user);
+    var growSetting = await dao.findOne(request,'settingUserGrow',{class:user.class});
+    if (growSetting) {
+        user.needExe = growSetting.nex_exe;
+    } else {
+        // 所需经验为-1就是满级
+        user.needExe = -1;
+    }
+
+    // var afterSetting = await dao.findOne(request,'settingUserGrow',{class:user.class + 1});
+    // if (!afterSetting) {
+    //       user.needExe = -1;
+    // }
+    var cf = await dao.findOne(request,'systemSet',{});
+    var tlCf = await dao.findOne(request,'systemSet2',{});
+    var shareCf = await dao.find(request,'shareSettings',{});
+    var unlockCf = await dao.find(request,'playerSetting',{});
+    var currentTime = new Date().getTime();
+    var data = {
+        user:user,
+        cf:cf,
+        tlCf:tlCf,
+        shareCf:shareCf,
+        currentTime:currentTime,
+        unlockCf:unlockCf
+    };
+    reply({"message":"用户登陆成功","statusCode":101,"status":true,"resource":data});
+}
+
+
+//登录验证
+exports.lands = async function(request,reply){ 
+     var user = request.auth.credentials;
+     await userService.updateLandLockstatus(request,user);  
+     await landService.updateUserLandGrows(request,user);
+     var lands = await dao.find(request,'land',{user_id:user._id + ""});
+     var landUlcCdts = await dao.find(request,'landUlcCdts',{},{},{code:1});
+     var data = {
+        user:user,
+        lands:lands,
+        landUlcCdts:landUlcCdts,
         currentTime:currentTime
     };
     reply({"message":"用户登陆成功","statusCode":101,"status":true,"resource":data});
+}
+//登录验证
+exports.farms = async function(request,reply){ 
+    var user = request.auth.credentials;
+    await userService.updateFarmLockstatus(request,user);
+    await farmService.updateUserLandGrows(request,user);
+    var farms = await dao.find(request,'farm',{user_id:user._id + ""});
+    var farmUlcCdts = await dao.find(request,'farmUlcCdts',{},{},{code:1});
+    var data = {
+        user:user,
+        farms:farms,
+        farmUlcCdts:farmUlcCdts,
+        currentTime:currentTime
+    };
 }
 //登录验证
 exports.userAlibilty = async function(request,reply){
@@ -231,29 +313,29 @@ exports.userAlibilty = async function(request,reply){
 
 exports.updateTl = async function(request){ 
     var user = request.auth.credentials;
-    // console.log('user',user);
+    // // console.log('user',user);
     var time = new Date().getTime();
     var tlSystemSet = await dao.findOne(request,'systemSet2',{});
     // 第一次进入游戏
     if (!user.updateTlTime) {
-        // console.log('11111',{updateTlTime:time});
-        // console.log('121212',{_id:user._id + ""});
+        // // console.log('11111',{updateTlTime:time});
+        // // console.log('121212',{_id:user._id + ""});
         await dao.updateOne(request,'user',{_id:user._id + ""},{updateTlTime:time}); 
-        // console.log('22222');
+        // // console.log('22222');
         return;
     }
-    // console.log('33333');
+    // // console.log('33333');
     var ygRecoveryTime = Math.round((time - user.updateTlTime) / 100 / tlSystemSet.tlRecoverySecs);
     
     var afterTl = (user.power + ygRecoveryTime * tlSystemSet.tlRecoveryValue) > tlSystemSet.tlMax ? tlSystemSet.tlMax : (user.power + ygRecoveryTime * tlSystemSet.tlRecoveryValue);
-//    console.log('afterTl',afterTl);
+//    // console.log('afterTl',afterTl);
     await dao.updateOne(request,'user',{_id:user._id + ""},{power:afterTl});
 }
 exports.serverUpto = async function(request,reply){
     var userid = request.params.userid;
     var token = request.params.token;
-    // console.log('userid',userid);
-    // console.log('token',token)
+    // // console.log('userid',userid);
+    // // console.log('token',token)
     var urllib = require('urllib');
     var url =  settings.host +  "jmmall.farm.userInfo.get";
     var urllib = require('urllib');
@@ -275,25 +357,25 @@ exports.serverUpto = async function(request,reply){
         timeout:20000,
     }, async function (err, data, res) {
     if (err) {
-        // console.log('用户信息同步失败');
-        console.log('err',err);
+        // // console.log('用户信息同步失败');
+        // console.log('err',err);
         reply({"message":"用户信息同步失败","statusCode":102,"status":false});
         // throw err; // you need to handle error
         return;
     }
 
-        // console.log(data.toString());
+        // // console.log(data.toString());
         var jsonData = JSON.parse(data);
 
     
         if (jsonData.c != 200) {
-            console.log(data.toString());
+            // console.log(data.toString());
             reply({"message":"用户信息同步失败","statusCode":102,"status":false});
             return;
         }
        
         var appUser = jsonData.d;
-        // console.log('appuser',appUser);
+        // // console.log('appuser',appUser);
         var uptoUser = {};
         uptoUser.userid = appUser.userid;
         uptoUser.nickname = appUser.nikename;
@@ -328,7 +410,7 @@ exports.serverUpto = async function(request,reply){
             user.createTime = new Date().getTime();
             await dao.save(request,'user',user);
             user = await dao.findOne(request,'user',{username:user.username});
-            // console.log()
+            // // console.log()
             dbUser = user;
             // 农场
             for (var index = 1;index < 13;index ++ ){
@@ -375,7 +457,7 @@ exports.serverUpto = async function(request,reply){
             await dao.updateOne(request,'user',{_id:user._id},payload); 
             for (var j = 1;j < 13;j ++ ){
                 var farm = await dao.findOne(request,'farm',{user_id:user._id + "",code:j});
-            //    console.log("farm",farm);
+            //    // console.log("farm",farm);
                 if (!farm) {
                     var land = {};
                     land.unlocked = 0;
@@ -388,8 +470,8 @@ exports.serverUpto = async function(request,reply){
                 }
             }    
         }
-        // console.log('user',user);
-        // console.log('dbuser',dbUser);
+        // // console.log('user',user);
+        // // console.log('dbuser',dbUser);
         // await userService.updatePlantCbRecord(request,dbUser);
         // await userService.updateAnimalCbRecord(request,dbUser);
         var systemSet = await dao.findOne(request,'systemSet',{});
@@ -427,16 +509,16 @@ exports.serverUpto = async function(request,reply){
             });
 
             var data = JSON.parse(result.data.toString());
-        // console.log(data.result_list.length);
-        // console.log('data',data);
+        // // console.log(data.result_list.length);
+        // // console.log('data',data);
             if (data.c == 200 && data.d.l.length > 0) {
                 for (var index in data.d.l) {
                     var friendUser = data.d.l[index];
-                    // console.log('index ',index)
-                    // console.log('friendUser',friendUser);
+                    // // console.log('index ',index)
+                    // // console.log('friendUser',friendUser);
                     var friend = await dao.findOne(request,'user',{username:friendUser.userid});
                     if (friend) {
-                        // console.log('addFriend',friend);
+                        // // console.log('addFriend',friend);
                         var hasFriend = await dao.findOne(request,'friend',{username:dbUser.username,friend:friend.userid});
                         if (!hasFriend) {
                             var selfFriendAdd = {};
@@ -465,7 +547,7 @@ exports.serverUpto = async function(request,reply){
             }
 
         }catch(e){
-            console.log("请求好友列表失败");
+            // console.log("请求好友列表失败");
         }   
         // 分享功能表
         // // 先定需要查询的土地
@@ -488,9 +570,9 @@ exports.serverUpto = async function(request,reply){
         //     }
 
         // });
-        // // console.log('success111222',result2.data.toString());
+        // // // console.log('success111222',result2.data.toString());
         // var data = JSON.parse(result2.data.toString());
-        // console.log('success111222',data);
+        // // console.log('success111222',data);
         reply({"message":"用户信息同步成功","statusCode":101,"status":true});
     });
 }
@@ -508,8 +590,9 @@ exports.updateLandLockstatus = async function(request,user){
         var ldClsSettings = await dao.findOne(request,'landUlcCdts',{landCode:land.code});
         if (ldClsSettings.cdtTpye == 1 ) { // 1 人物等级解锁 2 邀请好友解锁 3 钻石解锁
            if (user.class >= ldClsSettings.personClass) {
-               await dao.updateOne(request,'land',{_id:land._id + ""},{unlocked:1,status:1});
-           }
+                await dao.updateOne(request,'land',{_id:land._id + ""},{unlocked:1,status:1});
+                await catchSlaveService.addLandUnlockTips(request,user,land.code,ldClsSettings.personClass);
+            }
         }
         if (ldClsSettings.cdtTpye == 3 ) { // 1 人物等级解锁 2 邀请好友解锁 3 钻石解锁
             if (user.appLevel.levelName == "黄金店主" || user.appLevel.levelName == "白银店主" ) {
@@ -527,10 +610,11 @@ exports.updateFarmLockstatus = async function(request,user){
         var ldClsSettings = await dao.findOne(request,'farmUlcCdts',{landCode:land.code});
         if (ldClsSettings.cdtTpye == 1 ) { // 1 人物等级解锁 2 邀请好友解锁 3 钻石解锁
            if (user.class >= ldClsSettings.personClass) {
-               await dao.updateOne(request,'farm',{_id:land._id + ""},{unlocked:1,status:1});
-           }
+                await dao.updateOne(request,'farm',{_id:land._id + ""},{unlocked:1,status:1});
+                await catchSlaveService.addFarmUnlockTips(request,user,land.code,ldClsSettings.personClass);
+            }
         }
-         if (ldClsSettings.cdtTpye == 3 ) { // 1 人物等级解锁 2 邀请好友解锁 3 钻石解锁
+        if (ldClsSettings.cdtTpye == 3 ) { // 1 人物等级解锁 2 邀请好友解锁 3 钻石解锁
             if (user.appLevel.levelName == "黄金店主" || user.appLevel.levelName == "白银店主" ) {
                 await dao.updateIncOne(request,'farm',{_id:land._id + ""},{status:1,unlocked:1});
             }
@@ -568,7 +652,7 @@ exports.updateAnimalCbRecord = async function(request,user){
                 cbRecord.user_id = user._id + "";
                 cbRecord.plt_id = plant._id + "";
                 cbRecord.createTime = new Date().getTime();
-                // console.log('cbRecord',cbRecord);
+                // // console.log('cbRecord',cbRecord);
                 await dao.save(request,'sdCbRecord',cbRecord);
             }
         }
@@ -577,11 +661,11 @@ exports.updateAnimalCbRecord = async function(request,user){
 // 同步用户信息
 exports.upto = async function(request,reply){
     var usersRecords = await dao.find(request,'user',{username:request.payload.username});
-    // console.log('usersRecords is',usersRecords);
+    // // console.log('usersRecords is',usersRecords);
     // var md5Passwordtest = CryptoJS.HmacMD5(request.payload.username,"areca").toString();
-    // console.log('md5Passwordtest is',md5Passwordtest);   
-    // console.log('req payload is',request.payload);
-    // console.log('req');
+    // // console.log('md5Passwordtest is',md5Passwordtest);   
+    // // console.log('req payload is',request.payload);
+    // // console.log('req');
     // 更新步数信息
     var currentTime = new Date().getTime();
     var currentTimeDateTime = new Date(currentTime);
@@ -597,7 +681,7 @@ exports.upto = async function(request,reply){
     var yesterdayString = formatDateDay(yesterday23DateTime);
     if (request.payload.step) {
       
-        // console.log('yesterdayString is ',yesterdayString);
+        // // console.log('yesterdayString is ',yesterdayString);
         var stepRecord = await dao.findOne(request,'step',{username:areca.username,dayString:yesterdayString});
             if (stepRecord == null) {
                 stepRecord = {};
@@ -620,7 +704,7 @@ exports.upto = async function(request,reply){
         for (var index in user.friends) {
             var friend = user.friends[index];
             var serverUser = await dao.findOne(request,'user',{username:friend});
-            //  console.log('friend is',friend);
+            //  // console.log('friend is',friend);
             if (serverUser) {
                 serverFriends.push(friend);
             }
@@ -629,10 +713,10 @@ exports.upto = async function(request,reply){
         user.raw_password = CryptoJS.HmacMD5(request.payload.username,"areca").toString();
         user.password = CryptoJS.AES.encrypt(user.raw_password,"AiMaGoo2016!@.")+"";
         // user.password  = 
-        // console.log(user.md5Password);
+        // // console.log(user.md5Password);
         user.areca = 0;
         // user.pay_password = CryptoJS.AES.encrypt(request.payload.pay_password,"AiMaGoo2016!@.")+"";
-        // console.log('user is',user);
+        // // console.log('user is',user);
         user.scope = ["USER"];
         user.createTime = new Date().getTime();
         await dao.save(request,'user',user);
@@ -728,7 +812,7 @@ exports.putPassword = async function(request,reply){
 }
 exports.putPayPassword = async function(request,reply){   
     var user = request.auth.credentials;
-    // console.log(request.payload);
+    // // console.log(request.payload);
     var serverPwd = user.pay_password;
     var decrptPayPwd = CryptoJS.AES.decrypt(serverPwd,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8);;
     if (decrptPayPwd != request.payload.oldPwd) {
@@ -760,7 +844,7 @@ exports.friendInfo = async function(request,reply){
     await grouthService.updateGrowInfo(request,areca);
 
     areca = await dao.findOne(request,'areca',{username:friend.username});
-    // console.log('areca is',areca);
+    // // console.log('areca is',areca);
     // var arecaFruits = await dao.find(request,'arecaFruit',{grouth_id:areca.grouth_id});
     var data = {
         user:friend,
@@ -903,11 +987,11 @@ exports.user_info = async function(request,reply){
         // 处理每块宠物窝的状态
         if (land.status != 0) {
             // 如果当前时间还未到成熟期的一般 则为幼苗
-            // console.log("land us ",land);
-            // console.log('----宠物窝编号：',land.seed.seedday07);
+            // // console.log("land us ",land);
+            // // console.log('----宠物窝编号：',land.seed.seedday07);
             if (new Date().getTime() - land.plant_time < land.seed.seedday07 * 24 * 60 * 60 * 1000 / 2) {
-                // console.log('----宠物窝编号：',land.code);
-                //  console.log('----宠物窝状态：幼苗');
+                // // console.log('----宠物窝编号：',land.code);
+                //  // console.log('----宠物窝状态：幼苗');
                 land.status = 1;
                 var updateStatusRes = await dao.updateOne(request,'land',{_id:land._id},{status:land.status});
                 
@@ -915,15 +999,15 @@ exports.user_info = async function(request,reply){
             var badday = land.seed.bad_day == -1?system.bad_day:land.seed.bad_day;
              // 如果当前时间已到成熟期的一半 但未成熟 则为中期
             if (new Date().getTime() - land.plant_time < land.seed.seedday07 * 24 * 60 * 60 * 1000   && new Date().getTime() - land.plant_time >=  land.seed.seedday07 * 24 * 60 * 60 * 1000 / 2) {
-                // console.log('----宠物窝编号：',land.code);
-                //  console.log('----宠物窝状态：中期');
+                // // console.log('----宠物窝编号：',land.code);
+                //  // console.log('----宠物窝状态：中期');
                 land.status = 2;
                 var updateStatusRes = await dao.updateOne(request,'land',{_id:land._id},{status:land.status});
             }
             // 如果当前时间已超过成熟期 则为成熟
              if (new Date().getTime() - land.plant_time >= land.seed.seedday07 * 24 * 60 * 60 * 1000  ) {
-                //   console.log('----宠物窝编号：',land.code);
-                //  console.log('----宠物窝状态：成熟');
+                //   // console.log('----宠物窝编号：',land.code);
+                //  // console.log('----宠物窝状态：成熟');
                 land.status = 3;
                 var updateStatusRes = await dao.updateOne(request,'land',{_id:land._id},{status:land.status});
             }
@@ -958,7 +1042,7 @@ exports.user_info = async function(request,reply){
         }
     }
     user.lands = lands;
-    // console.log('user',user);
+    // // console.log('user',user);
     reply({"message":"查询成功","statusCode":101,"status":true,"resource":user});
 }
 exports.searchUser = async function(request,reply) {  
@@ -978,14 +1062,14 @@ exports.addFriend = async function(request,reply) {
          reply({"message":"用户不存在","statusCode":102,"status":false});
          return;
     }
-    // console.log('friend username is',friend.username);
-    // console.log('user username is',user.username);
+    // // console.log('friend username is',friend.username);
+    // // console.log('user username is',user.username);
     if (user.username == friend.username) {
         reply({"message":"不能添加自己为好友！","statusCode":102,"status":false});
         return;
     }
     var hasFriend = await dao.findOne(request,'friend',{username:user.username,friend:friend.username});;
-    // console.log(hasFriend);
+    // // console.log(hasFriend);
     if (hasFriend) {
         reply({"message":"好友已经存在！","statusCode":102,"status":false});
         return;
@@ -1020,7 +1104,7 @@ exports.apllyList = async function(request,reply) {
 exports.receveFriend = async function(request,reply) {  
     var user = request.auth.credentials;
     var aplly = await dao.findById(request,'aplly',request.params.id);
-    // console.log('aplly',aplly);
+    // // console.log('aplly',aplly);
     if (aplly == null) {
         reply({"message":"申请不存在","statusCode":102,"status":false});
         return;
@@ -1032,8 +1116,8 @@ exports.receveFriend = async function(request,reply) {
             reply({"message":"用户不存在","statusCode":102,"status":false});
             return;
         }
-        // console.log('friend username is',friend.username);
-        // console.log('user username is',user.username);
+        // // console.log('friend username is',friend.username);
+        // // console.log('user username is',user.username);
         if (user.username == friend.username) {
             reply({"message":"不能添加自己为好友！","statusCode":102,"status":false});
             return;
@@ -1049,7 +1133,7 @@ exports.receveFriend = async function(request,reply) {
             selfFriendAdd.gameFlag = 1;
             await dao.save(request,'friend',selfFriendAdd); 
         }
-        // console.log('1221122122');
+        // // console.log('1221122122');
         var hasMe = await dao.findOne(request,'friend',{username:friend.username,friend:user.username});
         if (hasMe == null) {
             var parentFriendAdd = {};
@@ -1122,7 +1206,7 @@ exports.getUserFriend = async function(request,reply){
     //             var next = {};
     //             var lands = await dao.find(request,'land',{user_id:friend._id + "",$or:[{status:2},{status:3}]},{},{harvestTime:1});
     //             if (lands.length > 0) {
-    //                 console.log('lands',lands);
+    //                 // console.log('lands',lands);
     //                 var findStealRecord = await dao.findOne(request,'stealRecrod',{username:user.username,grow_id:lands[0].grow_id});
     //                 if (!findStealRecord) {
     //                     // friend.nextHavestTime = lands[0].harvestTime;
@@ -1134,7 +1218,7 @@ exports.getUserFriend = async function(request,reply){
     //             }
     //             var farms = await dao.find(request,'farm',{user_id:friend._id + "",$or:[{status:2},{status:3}]},{},{harvestTime:1});
     //             if (farms.length > 0) {
-    //                 console.log('lands',lands);
+    //                 // console.log('lands',lands);
     //                 var findStealRecord = await dao.findOne(request,'stealRecrod',{username:user.username,grow_id:farms[0].grow_id});
     //                 if (!findStealRecord) {
     //                     // friend.nextHavestTime = lands[0].harvestTime;
@@ -1145,13 +1229,13 @@ exports.getUserFriend = async function(request,reply){
     //                 }               
     //             }
     //             if (nextHarvestland) {
-    //                 console.log('1111');
-    //                 console.log('nextHarvestland',nextHarvestland);
+    //                 // console.log('1111');
+    //                 // console.log('nextHarvestland',nextHarvestland);
     //                 friend.nextHavestTime = nextHarvestland.harvestTime;
     //                 friend.nextHarvestType = 1;
     //                 if (nextharvestFarm) {
     //                     if (nextharvestFarm.harvestTime < nextHarvestland.harvestTime) {
-    //                         console.log('2222');
+    //                         // console.log('2222');
     //                         friend.nextHavestTime = nextharvestFarm.harvestTime;
     //                         friend.nextHarvestType = 2;
     //                     }
@@ -1159,13 +1243,13 @@ exports.getUserFriend = async function(request,reply){
     //             }
 
     //              if (nextharvestFarm) {
-    //                 console.log('2222');
-    //                 console.log('nextharvestFarm',nextharvestFarm);
+    //                 // console.log('2222');
+    //                 // console.log('nextharvestFarm',nextharvestFarm);
     //                 friend.nextHavestTime = nextharvestFarm.harvestTime;
     //                 friend.nextHarvestType = 2;
     //                 if (nextHarvestland) {
     //                     if (nextHarvestland.harvestTime < nextharvestFarm.harvestTime) {
-    //                         console.log('2222');
+    //                         // console.log('2222');
     //                         friend.nextHavestTime = nextHarvestland.harvestTime;
     //                         friend.nextHarvestType = 1;
     //                     }
@@ -1176,7 +1260,7 @@ exports.getUserFriend = async function(request,reply){
     //         }
     //     }
     // }
-    // console.log('displayFriends',displayFriends);
+    // // console.log('displayFriends',displayFriends);
     reply({"message":"获取用户好友列表成功","statusCode":107,"status":true,"resource":displayFriends,sum:sum});
 }
 
@@ -1225,9 +1309,9 @@ exports.noStealHarvestLands = async function (request,lands) {
     if (lands.length > 0) {
         for (var index in lands) {
             var land = lands[index];
-            console.log('where',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:1});
+            // console.log('where',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:1});
             var stealRecords = await dao.find(request,'stealRecord',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:1});
-            console.log('111stealRecords',stealRecords);
+            // console.log('111stealRecords',stealRecords);
             
             if (stealRecords.length <= 0) {
                 noStealedLands.push(land);
@@ -1243,9 +1327,9 @@ exports.noStealHarvestFarms = async function (request,farms) {
     if (farms.length > 0) {
         for (var index in farms) {
             var land = farms[index];
-            console.log('where',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:1});
+            // console.log('where',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:1});
             var stealRecords = await dao.find(request,'stealRecord',{land_id:land._id + "",grow_id:land.grow_id,username:user.username,type:2});
-            console.log('222stealRecords',stealRecords);
+            // console.log('222stealRecords',stealRecords);
             if (stealRecords.length <= 0) {
                 noStealedfarms.push(land);
             }
@@ -1273,7 +1357,7 @@ const commissionStatus =  async function(request,user) {
 }
 
 const commissionQuery = async function(request,user) { 
-    return {canSteal:true,commission:300}
+    return {canSteal:false,commission:0}
 }
 exports.friends1 = async function(request,reply) {
     var user = request.auth.credentials;
@@ -1311,8 +1395,8 @@ exports.friends1 = async function(request,reply) {
     var users3 = await dao.find(request,"user",{"parentUsername":{$in:username2},"state":1},{"password":0},{createTime:-1});
     // var newDate = new Date(format("yyyy-M-d",new Date())).getTime();
     // var records = await dao.find(request,"growthRecord",{userId:user._id+"",createTime:{$gt:newDate}});
-    // console.log(users);
-    // console.log(records);
+    // // console.log(users);
+    // // console.log(records);
       if(users3.length!=0){
         
        let list1 = users3.map(async(value)=>{
@@ -1393,17 +1477,17 @@ exports.teaFriends = async function(request,reply) {
 
 
 
-    // console.log('params is',request.params);
+    // // console.log('params is',request.params);
     var findRes = await dao.find(request,'user',{username:{$ne:user.username}});
 
     // if (findRes.length <= 20) {
        
         for (var index in findRes) {
             var teaFriend = findRes[index];
-            // console.log('teaFriend',teaFriend);
-            // console.log('---------req .request.params.lant_type',request.params.land_type);
+            // // console.log('teaFriend',teaFriend);
+            // // console.log('---------req .request.params.lant_type',request.params.land_type);
             var ripeLands = await dao.find(request,'land',{status:3,user_id:teaFriend._id,type:request.params.land_type});
-            //  console.log('ripelands',ripeLands);
+            //  // console.log('ripelands',ripeLands);
             if (ripeLands.length > 0) {
                 teaFriend.hasMatrued = 1;
             } else {
@@ -1417,9 +1501,9 @@ exports.teaFriends = async function(request,reply) {
     var teaFriends = [];
     while (teaFriends.length < 20) {
         var random = Math.random();
-        console.log("---random ",random);
+        // console.log("---random ",random);
         var no = parseInt(findRes.length * random + 1);
-        console.log("---random inno ",no);
+        // console.log("---random inno ",no);
         var randomUser = await dao.findOne(request,'user',{incno:no,username:{$ne:user.username}});
         var hasUser = false;
         let list = teaFriends.map(async(value) =>{
@@ -1431,12 +1515,12 @@ exports.teaFriends = async function(request,reply) {
             teaFriends.push(randomUser);
         }
     }
-    //   console.log('ripelands',teaFriends);
+    //   // console.log('ripelands',teaFriends);
     for (var index in teaFriends) {
         var teaFriend = teaFriends[index];
-        // console.log('teaFriend',teaFriend);
+        // // console.log('teaFriend',teaFriend);
         var ripeLands = await dao.find(request,'land',{status:3,user_id:teaFriend._id,type:request.params.land_type});
-        // console.log('ripelands',ripeLands);
+        // // console.log('ripelands',ripeLands);
         if (ripeLands.length > 0) {
             teaFriend.hasMatrued = 1;
         } else {
@@ -1471,7 +1555,7 @@ exports.buyGuanjia = async function(request,reply) {
     var user = request.auth.credentials;
     var systemSet = await dao.findOne(request,'systemSet',{});
     var time = new Date().getTime();
-    if (user.guanjiaTime && user.guanjiaTime >= time ) {
+    if (user.guanjiaEndTime && user.guanjiaEndTime >= time ) {
          reply({"message":"您已经有管家了，不要重复购买！","statusCode":108,"status":false});
          return;
     }
@@ -1481,7 +1565,7 @@ exports.buyGuanjia = async function(request,reply) {
     }
     await dao.updateIncOne(request,'user',{_id:user._id + ""},{dimond:-Number(systemSet.guanjiaDimond)});
     var guanjiaTime = time + 30 * 24 * 60 * 60 * 1000;
-    await dao.updateOne(request,'user',{_id:user._id + ""},{guanjiaTime:guanjiaTime});
+    await dao.updateOne(request,'user',{_id:user._id + ""},{guanjiaEndTime:guanjiaTime});
     reply({"message":"购买成功！","statusCode":107,"status":true});
 }
 
@@ -1504,7 +1588,7 @@ exports.buyVip = async function(request,reply) {
     //     var element = array[index];
         
     // }
-    // console.log("currrent year is",currentYear);
+    // // console.log("currrent year is",currentYear);
     var startYear;
     if (user.vipYear == null || user.vipYear < currentYear) {
         startYear = currentYear;
@@ -1528,22 +1612,22 @@ exports.buyVip = async function(request,reply) {
     var endYears = startYear;
     if (endMonth > 12) {
         var years = Math.floor(endMonth / 12);
-        //  console.log("years is",currentYear);
+        //  // console.log("years is",currentYear);
         endYears = startYear + years;
         endMonth = endMonth % 12;
         endMonth = endMonth == 0 ? 12:endMonth;
     }
-    // console.log("endYears is",endYears);
+    // // console.log("endYears is",endYears);
     var monthString =   (endMonth < 10) ? '0' + endMonth : endMonth;
     var endDate = endYears + "-" + monthString;
-    // console.log("endDate is ",endDate);
-    // console.log("year is",year);
+    // // console.log("endDate is ",endDate);
+    // // console.log("year is",year);
     // year += 1;
-    // console.log("year is",year);
+    // // console.log("year is",year);
     // var month = date.getMonth();
-    // console.log("getMonth is",month);
+    // // console.log("getMonth is",month);
     // month += 1;
-    // console.log("getMonth is",month);
+    // // console.log("getMonth is",month);
     // var vipYear = 0;
     // if (user.vipYear) {
     //     vipYear = user.vi
@@ -1582,7 +1666,7 @@ exports.buyVip = async function(request,reply) {
     var endYears = vipRecord.endYears;
     var endMonth = vipRecord.endMonth;
     var endDate = vipRecord.endDate;
-    console.log(endYears + "-" + endDate + ":" + endDate);
+    // console.log(endYears + "-" + endDate + ":" + endDate);
     var upRes = await dao.updateOne(request,'user',{username:vipRecord.username},{vipYear:endYears,vipMonth:endMonth,endDate:endDate});
     reply({"message":"充值成功！","statusCode":101,"status":true});
 
@@ -1620,12 +1704,12 @@ exports.userwarahouse = async function(request,reply) {
 
 //添加用户
 exports.updateUserClass = async function(request,reply,username) { 
-    // console.log('更新上级的会员等级2');
+    // // console.log('更新上级的会员等级2');
     var user = await dao.findOne(request,'user',{username:username});
     var systemSet = await dao.findOne(request,'systemSet');
     // var parent = await dao.findOne(request,'user',{username:user.parentUsername});
     var info  = "用户" + user.username + "的后代数为" + user.sonsum + "总收益为" + user.pureGoldRevenue + "购买总值" + user.buy_seed_sum; 
-    // console.log(info);
+    // // console.log(info);
     // 如果上级是经理
     if (user.class_id == 2) {
         info = "用户" + user.username + "是经理"
@@ -1700,10 +1784,10 @@ exports.addUser = async function(request,reply) {
     var parentuser = await dao.find(request,"user",{username:user.parentUsername});
     var policy = await dao.find(request,"systemSet");
     var times = await dao.findById(request,"systemSet","5916eb0b80ddb01289f5b937");
-    // console.log(credentials);
-    // console.log(user.parentTranpwd);
-    // console.log(credentials.tranpwd);
-    // console.log(CryptoJS.AES.decrypt(credentials.tranpwd,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8));
+    // // console.log(credentials);
+    // // console.log(user.parentTranpwd);
+    // // console.log(credentials.tranpwd);
+    // // console.log(CryptoJS.AES.decrypt(credentials.tranpwd,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8));
     // if(request.payload.parentTranpwd){
     if(request.payload.parentTranpwd!=CryptoJS.AES.decrypt(credentials.tranpwd,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8)){
             reply({"message": "推荐人交易密码不正确，请重试！", "statusCode": 102, "status": false});
@@ -1861,8 +1945,9 @@ exports.upgrade = async function(request,reply){
         await userService.updateLandLockstatus(request,user);
         var beforeData = {class:user.class - 1,setting:beforeSetttings};
         var afterData = {class:user.class,setting:afterSettings};
-        console.log('datas',[beforeData,afterData]);
+        // console.log('datas',[beforeData,afterData]);
         // 添加dw 
+        await functionService.checkTips(request);
         reply({"message":"升级成功！","statusCode":101,"status":true,resource:[beforeData,afterData]});
     } else {
         reply({"message":"经验还不够升级！","statusCode":102,"status":false});
@@ -1871,8 +1956,8 @@ exports.upgrade = async function(request,reply){
 //更新用户
 exports.updateUser = async function(request,reply){
     var user = await dao.findById(request,"user",request.params.id);
-    // console.log(request.payload);
-    // console.log(CryptoJS.AES.decrypt(user.tranpwd,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8));
+    // // console.log(request.payload);
+    // // console.log(CryptoJS.AES.decrypt(user.tranpwd,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8));
     //查找手机号是否有重复
     var statusCode = 101;
     if(request.payload.mobile){
@@ -1884,7 +1969,7 @@ exports.updateUser = async function(request,reply){
             }
         }
     }
-    // console.log(CryptoJS.AES.decrypt(user.tranpwd,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8));
+    // // console.log(CryptoJS.AES.decrypt(user.tranpwd,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8));
     if(request.payload.oldpwd){
         if(request.payload.oldpwd!=CryptoJS.AES.decrypt(user.pay_password,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8)){
             reply({"message": "原交易密码不正确，请重试！", "statusCode": 102, "status": false});
@@ -1976,8 +2061,8 @@ exports.getUserList = async function(request,reply){
 //     var users = await dao.find(request,"user",{"parentUsername":{$in:username1},"state":1},{"password":0},{createTime:-1},parseInt(request.params.size),parseInt(request.params.page));
 //     var newDate = new Date(format("yyyy-M-d",new Date())).getTime();
 //     var records = await dao.find(request,"growthRecord",{userId:user._id+"",createTime:{$gt:newDate}});
-//     // console.log(users);
-//     // console.log(records);
+//     // // console.log(users);
+//     // // console.log(records);
 //     var sum = await dao.findCount(request,"user",{"parentUsername":{$in:username1},"state":1});
 //     dao.updateOne(request,"user",{"_id":user._id+""},{sonSum:sum});
 //     if(users == null){
@@ -2014,7 +2099,7 @@ exports.getSearchList = async function(request,reply){
 }//搜索厂家商家列表
 exports.getOrderList = async function(request,reply){
     //列表
-    console.log(request.payload.where);
+    // console.log(request.payload.where);
     var data = await dao.find(request,"user",{},{"password":0},request.payload.where,parseInt(request.params.size),parseInt(request.params.page));
     //总数
     var sum = await dao.findCount(request,"user",request.payload.where);
@@ -2110,30 +2195,30 @@ exports.allStealUser = async function(request,reply){
     }); 
    }
     username1.push(user.username);
-    //console.log(username1);
+    //// console.log(username1);
     var users = await dao.find(request,"user",{"parentUsername":{$in:username1},"state":1},{"password":0},{createTime:-1},parseInt(request.params.size),parseInt(request.params.page));
     var newDate = new Date(format("yyyy-M-d",new Date())).getTime();
-    //console.log(newDate);
+    //// console.log(newDate);
     var records = await dao.find(request,"growthRecord",{userId:user._id+"",createTime:{$gt:newDate},number:{$gt:0}/*,createTime:{$lt:newDate+86400000}*/});
-    //console.log(records);
+    //// console.log(records);
     var recordName=[];
     var list2 = records.map(async(value)=>{recordName.push(value.friendName)});
     var userTwo = await dao.find(request,"user",{"parentUsername":{$in:username1},"username":{$nin:recordName},"state":1,"fertilizerStatus":1},{"password":0},{createTime:-1},parseInt(request.params.size),parseInt(request.params.page));
-    //console.log(recordName);
-    //console.log(userTwo);
-    //console.log(userTwo);
+    //// console.log(recordName);
+    //// console.log(userTwo);
+    //// console.log(userTwo);
     // if(userTwo == 0){
     //     reply({"message":"您暂时没有可偷取的好友！","statusCode":102,"status":false});
     //     return;
     //}else{
     var aa="";
     var plantSums=0;
-       // console.log(users.length);
+       // // console.log(users.length);
        for (var i = 0;i <userTwo.length;i++){
         aa=userTwo[i]._id+"";
         var plantSum=0;
         var friendPlant=await dao.find(request,"plant",{"userId":aa});
-        //console.log(friendPlant.length);
+        //// console.log(friendPlant.length);
         for (var j = 0;j <friendPlant.length;j++){
             plantSum=plantSum+friendPlant[j].plantearnings;
             //await dao.updateOne(request,"user",{"_id":aa},{fertilizerStatus:0})
@@ -2148,7 +2233,7 @@ exports.allStealUser = async function(request,reply){
                 plantSum=0; 
             }
         }
-        //console.log(plantSum);
+        //// console.log(plantSum);
         if (plantSum>0){
             var growthRecord = {
                 userId:user._id+"",
@@ -2172,7 +2257,7 @@ exports.allStealUser = async function(request,reply){
  //订购一键采蜜
  exports.shopStealUser = async function(request,reply){
     var user = request.auth.credentials;
-    // console.log(user);
+    // // console.log(user);
     if(user.stealTime !=0){
         reply({"message":"您已经购买过了无需重复购买","statusCode":108,"status":false});
         return;
@@ -2309,7 +2394,7 @@ function format1(fmt,data) { //author: meizz
 //计算团队人数
 async function addparentNumber(request,parentUsername,remdNumber = false){
     let parent = await dao.find(request,'user',{username:parentUsername});
-    // console.log(parent);
+    // // console.log(parent);
     if(parent){
         if(remdNumber){
            await dao.updateOne(request,"user",{'_id':parent[0]._id+""},{remdNumber:parent[0].remdNumber+1,teamNumber:parent[0].teamNumber+1}); 
@@ -2426,10 +2511,10 @@ var orderFormat = function(date) {
 var formatDateMonth = function(date) {
 
         var year = date.getFullYear();
-        console.log('year  to string ',year.toString());
+        // console.log('year  to string ',year.toString());
         var month = date.getMonth() + 1;
         month = (month < 10) ? '0' + month : month;
-         console.log('month  to string ',month.toString());
+         // console.log('month  to string ',month.toString());
       
 
        

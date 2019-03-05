@@ -306,7 +306,9 @@ module.exports = [
                 dimond:Joi.number().default(0).description("钻石"),
                 experience:Joi.number().default(0).description("经验"),
                 hb:Joi.number().default(0).description("红包"),
-                plt_sessence:Joi.number().default(0).description("植物精华")
+                plt_sessence:Joi.number().default(0).description("植物精华"),
+                propId:Joi.number().default(-1).description("道具ID"),
+                propCount:Joi.number().default(0).description("道具数量")
             },
             params:{
                 userId:Joi.string().description('用户ID')
@@ -1783,6 +1785,87 @@ module.exports = [
         }
     },
 
+
+     // 功能表列表
+    {
+        method:'POST',
+        path:'/admin/player/{page}/{size}',
+        handler:adminService.players,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '商品列表',
+            notes: '商品列表Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    page:Joi.number().required().description("页数"),
+                    size:Joi.number().required().description('条数')
+                },
+                payload:{
+                    where:Joi.object().description('筛选条件')
+                }
+            }
+        }
+    },
+
+
+
+     // 功能表详情
+    {
+        method:'GET',
+        path:'/admin/player/{id}',
+        handler:adminService.playerDetail,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '商品详情',
+            notes: '商品详情API',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("id")
+                }
+            }
+        }
+    },
+    // 编辑功能表
+      {
+        method:'PUT',
+        path:'/admin/player/{id}',
+        handler:adminService.putPlayer,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope:[ 'ADMIN', "SYSTEM_SET_EDIT"]
+            },
+            description: '修改个人成长表',
+            notes: '修改个人成长表Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("商品ID")
+                },
+                payload:{
+                    tip:Joi.string().description('前端提示'),
+                    class:Joi.number().description('解锁等级')
+                }
+            }
+        }
+    },
     // 产出宠物设置
     {
         method:'DELETE',

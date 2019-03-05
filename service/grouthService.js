@@ -2,7 +2,7 @@
 const dao = require("../dao/dao");
 const grouthService = require("../service/grouthService");
 exports.grouthTime1 = async function(request,land){ 
-    //  console.log('grouthTime');
+    //  // console.log('grouthTime');
     if (land.status == 0 || land.seed == null) {
         return 0;
     }
@@ -30,11 +30,11 @@ exports.grouthTime1 = async function(request,land){
     const dayString = formatDateDay(currentDateTime);
     // 生长时间
     var seasonStartTime = new Date(land.season_start_time);
-    // console.log('seasonStartTime',land.season_start_time);
+    // // console.log('seasonStartTime',land.season_start_time);
 	var seasonStartFomatSting =  format(seasonStartTime);
 	var seasonStart23dianFormatString = seasonStartFomatSting.split(" ")[0] + " 23:59:59";
     var seasonStartTimDay23dianTimeStamp = Date.parse(new Date(seasonStart23dianFormatString));
-    // console.log('seasonStart23dianFormatString',seasonStart23dianFormatString);
+    // // console.log('seasonStart23dianFormatString',seasonStart23dianFormatString);
     var seasonStartTimDay24dianTimeStamp = seasonStartTimDay23dianTimeStamp + 1000;
     // 计算应日常次数
     var expectDailyCount;
@@ -56,7 +56,7 @@ exports.grouthTime1 = async function(request,land){
     var noDailyCout = 3 * expectDailyCount - fertilizeCount - insecCount - weedCount;
 
     var havertTime = curSeason.hour * 60 * 60 * 1000 + noDailyCout * 2 * 60 * 60 * 1000;
-    console.log(land.code + "号宠物窝" + '应日常次数：'+ expectDailyCount + ",洗澡次数："+insecCount + ",打扫次数"+ weedCount  + "喂养次数"+ fertilizeCount + "未日常次数：" + noDailyCout);
+    // console.log(land.code + "号宠物窝" + '应日常次数：'+ expectDailyCount + ",洗澡次数："+insecCount + ",打扫次数"+ weedCount  + "喂养次数"+ fertilizeCount + "未日常次数：" + noDailyCout);
     return havertTime;
 
 }
@@ -84,7 +84,7 @@ exports.grouthTime = async function(request,areca){
     var wormCount = await dao.findCount(request,'worm',{grouth_id:areca.grouth_id + ""});
 
     var harvestHour = 20 + wormCount * 2 - insecCount * 2 - waterCount * 2;
-    console.log('hareverst hour',harvestHour);
+    // console.log('hareverst hour',harvestHour);
     return harvestHour * 60 * 60 * 1000;
 }
 
@@ -117,16 +117,16 @@ exports.grouthHarvest = async function(request,areca){
     var growYesterday23clockTimeStamp  = grow00ClockTimeStamp - 60 * 1000;
     var growYesterday23DateTime = new Date(growYesterday23clockTimeStamp);
     var yesterdayString = formatDateDay(growYesterday23DateTime);
-    console.log('yesterdayString',yesterdayString);
+    // console.log('yesterdayString',yesterdayString);
     var arecaCount = 0;
     var stepToCountRecord = await dao.findOne(request,'stepToCount',{username:areca.username,yesterdayString:yesterdayString});
     if (stepToCountRecord) {
-        console.log('stepToCountRecord',stepToCountRecord);
+        // console.log('stepToCountRecord',stepToCountRecord);
         arecaCount = stepToCountRecord.arecaCount;
     } else {
         var stepRecord = await dao.findOne(request,'step',{username:areca.username,dayString:yesterdayString});
         if (stepRecord) {
-            console.log('stepRecord',stepToCountRecord);
+            // console.log('stepRecord',stepToCountRecord);
             arecaCount = Math.floor(stepRecord.step / 1000);
             arecaCount = arecaCount > 9 ? 9:arecaCount;
         } else {
@@ -139,7 +139,7 @@ exports.grouthHarvest = async function(request,areca){
         stepToCountRecord.createTime = new Date().getTime();
         await dao.save(request,'stepToCount',stepToCountRecord);
     }
-    // console.log('arecaCount',arecaCount);
+    // // console.log('arecaCount',arecaCount);
 
    return arecaCount;
 }
@@ -173,16 +173,16 @@ exports.updateGrowStatus = async function(request,areca){
     //     await dao.save(request,'arecaFruit',arecaFruit);
     // }
     
-    // console.log('updateGrowStatus');
+    // // console.log('updateGrowStatus');
     var realCount = arecaCount - areca.stealed;
     await dao.updateOne(request,'areca',{_id:areca._id + ""},{arecaCount:realCount,harvest:arecaCount});
     // 生长中
     if (areca.status == 1) {
         var grouthTime = await grouthService.grouthTime(request,areca);
-        console.log('grouthTime',grouthTime);
+        // console.log('grouthTime',grouthTime);
         if (areca.grow_start_time + grouthTime <= currentTime) {
-            console.log('areca.grow_start_time',areca.grow_start_time);
-            console.log('currentTime',currentTime);
+            // console.log('areca.grow_start_time',areca.grow_start_time);
+            // console.log('currentTime',currentTime);
             await dao.updateOne(request,'areca',{_id:areca._id + ""},{status:2});
         }
     // 成熟
@@ -190,7 +190,7 @@ exports.updateGrowStatus = async function(request,areca){
 }
 
 exports.updateGrowStatus1 = async function(request,land){  
-    // console.log('updateGrowStatus');
+    // // console.log('updateGrowStatus');
     if (land.status == 0 ||land.status == 3) {return};
     var seed = {};
     if (land.seed) {
@@ -208,10 +208,10 @@ exports.updateGrowStatus1 = async function(request,land){
         }
     }
     // var curSeasonHarvestTime = land.season * 24 * 60 * 60 * 1000;
-    // console.log('season',seed.seasons);
+    // // console.log('season',seed.seasons);
     var curSeasonHarvestTime = land.season * seed.seasons[0].hour * 60 * 60 * 1000
     if  (currentTimeStamp - land.plant_time >= curSeasonHarvestTime) {
-        //  console.log('2222222');
+        //  // console.log('2222222');
         var updateLandRes = await dao.updateOne(request,'land',{_id:land._id + ""},{status:2});
     } else {
         var updateLandRes = await dao.updateOne(request,'land',{_id:land._id + ""},{status:1});
@@ -221,7 +221,7 @@ exports.updateGrowStatus1 = async function(request,land){
 exports.updateGrowInfo = async function(request,land){ 
    
 
-    //   console.log('updateGrowInfo');
+    //   // console.log('updateGrowInfo');
      // 洗澡(除虫)
     var inseced = 0;
     var insecRecords = await dao.find(request,'insecRecord',{land_id:land._id,season:land.season,grouth_id:land.grouth_id});
@@ -235,7 +235,7 @@ exports.updateGrowInfo = async function(request,land){
         weeded = 1;
     }
 
-    // console.log("weeded is",weeded);
+    // // console.log("weeded is",weeded);
     // 浇水（）
     var watered = 0;
     var waterRecords = await dao.find(request,'waterRecord',{land_id:land._id,season:land.season,grouth_id:land.grouth_id});
@@ -250,8 +250,8 @@ exports.updateGrowInfo = async function(request,land){
         fertilized = 1;
     }
     // if(land.code == 22) {
-    //     // console.log('fertilized is',fertilized);
-    //     //  console.log('land._Id is',land._id + "");
+    //     // // console.log('fertilized is',fertilized);
+    //     //  // console.log('land._Id is',land._id + "");
     // }
     await dao.updateOne(request,'land',{_id:land._id + ""},{weed_status:weeded,fertilize_status:fertilized,water_status:watered,insec_status:inseced});
 
@@ -288,7 +288,7 @@ exports.updateAokenGrowInfo = async function(request,land){
         weeded = 1;
     }
 
-    // console.log("weeded is",weeded);
+    // // console.log("weeded is",weeded);
     // 浇水
     var watered = 0;
     var waterRecords = await dao.find(request,'waterRecord',{land_id:land._id,dayString:dayString,season:land.season,grouth_id:land.grouth_id});
@@ -303,8 +303,8 @@ exports.updateAokenGrowInfo = async function(request,land){
         fertilized = 1;
     }
     // if(land.code == 22) {
-    //     // console.log('fertilized is',fertilized);
-    //     //  console.log('land._Id is',land._id + "");
+    //     // // console.log('fertilized is',fertilized);
+    //     //  // console.log('land._Id is',land._id + "");
     // }
     await dao.updateOne(request,'land',{_id:land._id + ""},{weed_status:weeded,fertilize_status:fertilized,water_status:watered,insec_status:inseced});
     
@@ -350,10 +350,10 @@ exports.grouthArecaInfo = async function(request,reply){
     
     var land_info = {};
     land_info.harvest_rest_time = restTime;
-    // console.log('00000000000');
+    // // console.log('00000000000');
     await grouthService.updateGrowStatus(request,areca);
     var harvest =  await grouthService.grouthHarvest(request,land);
-    // console.log('harvest is',harvest);
+    // // console.log('harvest is',harvest);
     
     land_info.status = areca.status;
     land_info.expected_harvest = harvest;
@@ -368,7 +368,7 @@ exports.grouthArecaInfo = async function(request,reply){
     //     land_info.season = land.season;
     //     land_info.season_stealed = land.season_stealed;
     //     // land_info.status = land.status;
-    //     // console.log('land.stauts',land.status);
+    //     // // console.log('land.stauts',land.status);
     //     land_info.code = land.seed.code;
     //     land_info.seedname = land.seed.seedname;
     //     land_info.stealed_count = land.stealed_count;
@@ -412,17 +412,17 @@ exports.grouthAokenInfo = async function(request,reply){
         land_info.expected_harvest = curSeason.harvest - land.season_stealed;
         land_info.season_stealed = land.season_stealed;
         if (land.status == null) {
-            console.log('adwaa a a');
+            // console.log('adwaa a a');
             return;
         } 
         land_info.status = land.status;
-        console.log('land.stauts',land.status);
+        // console.log('land.stauts',land.status);
         land_info.code = land.seed.code;
         land_info.seedname = land.seed.seedname;
         if (land.status != 2) {
             var harvestTime = await grouthService.grouthTime(request,land);
-            // console.log('harvestTime is ',harvestTime);
-             console.log('currentTime is ',currentTime);
+            // // console.log('harvestTime is ',harvestTime);
+             // console.log('currentTime is ',currentTime);
             land_info.harvest_rest_time = harvestTime - currentTime + land.season_start_time;
             land_info.harvest_rest_time = land_info.harvest_rest_time < 0?0:land_info.harvest_rest_time;
         }  
@@ -493,10 +493,10 @@ var orderFormat = function(date) {
 var formatDateMonth = function(date) {
 
         var year = date.getFullYear();
-        console.log('year  to string ',year.toString());
+        // console.log('year  to string ',year.toString());
         var month = date.getMonth() + 1;
         month = (month < 10) ? '0' + month : month;
-         console.log('month  to string ',month.toString());
+         // console.log('month  to string ',month.toString());
       
 
        

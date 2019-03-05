@@ -20,7 +20,7 @@ AccessToken.prototype.get =async function(callback) {
         delete result.relation_gid;
         return callback(null, result);
     }else{
-        console.log('accessToken没有获取到');
+        // console.log('accessToken没有获取到');
         return callback(null);
     }
 }

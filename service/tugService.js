@@ -22,7 +22,7 @@ exports.eventStatus = async function(request,reply){
         joinStatus = 2;
         data = tugingResults[0];
     }
-    console.log('data',{status:status,tugSetting:tugSetting,tuggingRecords:tuggingRecords});
+    // console.log('data',{status:status,tugSetting:tugSetting,tuggingRecords:tuggingRecords});
     reply({"message":"查询成功","statusCode":101,"status":true,"resource":{status:status,joinStatus,tugSetting:tugSetting,tuggingRecords:data}});
 }
 
@@ -34,11 +34,11 @@ exports.isStart = async function(request){
     }
     var time = new Date(); 
     var day = time.getDay(); 
-    // console.log('day',day);
+    // // console.log('day',day);
     // 日子是否符合
     var inDays = false;
     for (var index in tugSetting.tugDays) {
-        console.log(tugSetting.tugDays[index]);
+        // console.log(tugSetting.tugDays[index]);
         if (day === tugSetting.tugDays[index]) {
             inDays = true;
             break;
@@ -46,28 +46,28 @@ exports.isStart = async function(request){
     }
     // 时间段是否符合
     var now00 = new Date(new Date().setHours(0,0,0,0)).getTime();
-    // console.log('now00',format(new Date(now00)));
+    // // console.log('now00',format(new Date(now00)));
     var now = new Date().getTime();
-    // console.log('now',format(new Date(now)));
+    // // console.log('now',format(new Date(now)));
     var inTime = false;
     for (var i in tugSetting.eventTimes) {
         var settingStart = now00 + tugSetting.eventTimes[i].begin;
-        console.log(tugSetting.eventTimes[i]);
-        // console.log('settingStart',settingStart);
-        // console.log('settingStart',format(new Date(settingStart)));
-        console.log(tugSetting.eventTimes[i].begin);
+        // console.log(tugSetting.eventTimes[i]);
+        // // console.log('settingStart',settingStart);
+        // // console.log('settingStart',format(new Date(settingStart)));
+        // console.log(tugSetting.eventTimes[i].begin);
         var settingEnd = now00 + tugSetting.eventTimes[i].end;
-        // console.log('settingEnd',settingEnd);
-        // console.log('settingEnd',format(new Date(settingEnd)));
-        console.log(tugSetting.eventTimes[i].begin);
+        // // console.log('settingEnd',settingEnd);
+        // // console.log('settingEnd',format(new Date(settingEnd)));
+        // console.log(tugSetting.eventTimes[i].begin);
         if(now >= settingStart && now <= settingEnd) {
             inTime = true;
-            // console.log('inTime i true',inTime);
+            // // console.log('inTime i true',inTime);
             break;
         }
     }
     var randUser = await randUserExceptMe(request);
-    console.log('randUser',randUser);
+    // console.log('randUser',randUser);
     return inDays && inTime;
 
 }
@@ -86,7 +86,7 @@ exports.harvestTug = async function(request,reply){
                     var prop_id = prop._id + "";
                     var propId = prop.id; 
                     var propInHouse = await dao.findOne(request,'warahouse',{prop_id:prop._id + "",user_id:user._id + ""});
-                    // console.log('33333',propInHouse);
+                    // // console.log('33333',propInHouse);
                     if (propInHouse) {
                         await dao.updateIncOne(request,'warahouse',{_id:propInHouse._id + ""},{count:prop.count});
                     } else {
@@ -136,7 +136,7 @@ exports.joinTug = async function(request,reply){
 
     var myStrength = Math.round(Math.random()* (tugSetting.everyOneUpMax - tugSetting.everyOneUpMin) + tugSetting.everyOneUpMin);
     var aiStrength = Math.round(Math.random()* (tugSetting.startStrenthMax - tugSetting.startStrenthMin) + tugSetting.startStrenthMin);
-    
+    // console.log("aiStrength",aiStrength);
     var aiInviteMax = Math.round(aiStrength / tugSetting.everyOneUpMin);
     var aiInviteMin = Math.round(aiStrength / tugSetting.everyOneUpMax);
     var aiStartInvite = Math.round(Math.random() * (aiInviteMax - aiInviteMin) + aiInviteMin);
@@ -181,27 +181,27 @@ const updateTugRecord = async function(request,tugingRecord) {
     // 本次计算的截止时间 可能是当前时间或者任务结束时间
     var termTime = (tugingRecord.createTime + tugSetting.taskMinutes * 60 * 1000) < time ? (tugingRecord.createTime + tugSetting.taskMinutes * 60 * 1000) : time;
     var restTime = termTime - tugingRecord.updateTime; // 机器人可能产生变化的总时间
-    console.log('termTime',format(new Date(termTime)));
-    console.log('restTime',restTime / 1000 / 60 );
-    console.log('tugingRecord.myStrength',tugingRecord.myStrength); 
+    // console.log('termTime',format(new Date(termTime)));
+    // console.log('restTime',restTime / 1000 / 60 );
+    // console.log('tugingRecord.myStrength',tugingRecord.myStrength); 
     await refreshTugRecord(request,tugingRecord._id + "",tugSetting,tugingRecord.updateTime,restTime);
     await refreshMyInvite(request,tugingRecord._id + "",tugSetting);
     tugingRecord = await dao.findOne(request,'tugTaskRecord',{_id:tugingRecord._id + ""});
-    console.log('time',format(new Date(time)));
-    console.log('taskEndTime',format(new Date(tugingRecord.createTime + tugSetting.taskMinutes * 60 * 1000)));
+    // console.log('time',format(new Date(time)));
+    // console.log('taskEndTime',format(new Date(tugingRecord.createTime + tugSetting.taskMinutes * 60 * 1000)));
     if (time >= tugingRecord.createTime + tugSetting.taskMinutes * 60 * 1000) {
         await dao.updateOne(request,'tugTaskRecord',{_id:tugingRecord._id + ""},{status:2});
         var winnerStatus;
         var hb = 0;
         var props = [];
-        console.log('tugingRecord',tugingRecord); 
-        console.log('tugingRecord.aiStrength',tugingRecord.aiStrength);
-        console.log('tugingRecord.myStrength',tugingRecord.myStrength); 
+        // console.log('tugingRecord',tugingRecord); 
+        // console.log('tugingRecord.aiStrength',tugingRecord.aiStrength);
+        // console.log('tugingRecord.myStrength',tugingRecord.myStrength); 
         if (tugingRecord.aiStrength > tugingRecord.myStrength) {
             winnerStatus = 1; // 机器人赢
              // 计算额外掉落
             var dropGruops = await dao.find(request,'dropGroups',{id:tugSetting.failDropId});
-            console.log('1111111',dropGruops);
+            // console.log('1111111',dropGruops);
            
             if (dropGruops.length > 0) {
                 for (var index in dropGruops) {
@@ -211,7 +211,7 @@ const updateTugRecord = async function(request,tugingRecord) {
                     if (sucRand <= group.rate) {
                         var count = Math.round(Math.random() * (group.max - group.min) + group.min);
                         var prop = await dao.findOne(request,'prop',{id:group.propId});
-                        // console.log('222222',prop);
+                        // // console.log('222222',prop);
                         if (prop) {
                             prop.count = count;
                             props.push(prop);
@@ -227,7 +227,7 @@ const updateTugRecord = async function(request,tugingRecord) {
             winnerStatus = 0; // 平手
             hb = Math.round(tugingRecord.myStrength * tugSetting.hbPerStrenth / 2);
         }
-        console.log('hb',hb);
+        // console.log('hb',hb);
         var tugResult = {};
         tugResult.createTime = new Date().getTime();
         tugResult.username = user.username;
@@ -277,13 +277,13 @@ const refreshMyInvite = async function(request,tug_id,tugSetting) {
     }
 }
 const refreshTugRecord = async function(request,tug_id,tugSetting,startTime,restTime) { 
-    console.log('restTime111',restTime);
+    // console.log('restTime111',restTime);
     if (restTime < tugSetting.refreshIntervalMin ) {
         return ;
     }
-    // console.log('tugSetting',tugSetting);
+    // // console.log('tugSetting',tugSetting);
     var thisRefreshIntervalMin = restTime < tugSetting.refreshIntervalMin ? restTime : tugSetting.refreshIntervalMin; // 固定为下限
-    console.log('thisRefreshIntervalMin',thisRefreshIntervalMin);
+    // console.log('thisRefreshIntervalMin',thisRefreshIntervalMin);
     var time = new Date().getTime();
     var refreshThisIntervals = Math.random() * (tugSetting.refreshIntervalMax - thisRefreshIntervalMin) + thisRefreshIntervalMin;
     // 随机得出的此次更新的时间
@@ -293,15 +293,15 @@ const refreshTugRecord = async function(request,tug_id,tugSetting,startTime,rest
     if (restTime >= refreshIntervalms) {
         // 用户比较强
         if (tugingRecord.aiStrength < tugingRecord.myStrength) {
-            console.log('用户比较强');
+            // console.log('用户比较强');
             var upRnd = Math.random();
             // 解果是提升
             if (upRnd < tugSetting.userBigger.aiUpRate) {
-                console.log('解果是提升');
+                // console.log('结果是提升');
                 var biggerRnd = Math.random();
                 // 结果是超越
                 if (biggerRnd < tugSetting.userBigger.aiStrongerRate) {
-                    console.log('结果是超越');
+                    // console.log('结果是超越');
                     var changeMin = (tugingRecord.myStrength - tugingRecord.aiStrength) > tugSetting.userBigger.ifStongerChangeLqMin ? (tugingRecord.myStrength - tugingRecord.aiStrength) : tugSetting.userBigger.ifStongerChangeLqMin;
                     
                     var changeValue = Math.round(Math.random() * (tugSetting.userBigger.ifStrongerChangeLqMax - changeMin) + changeMin);
@@ -309,8 +309,8 @@ const refreshTugRecord = async function(request,tug_id,tugSetting,startTime,rest
                     var inviteMax = Math.round(changeValue / tugSetting.everyOneUpMin);
                     var inviteMin = Math.round(changeValue / tugSetting.everyOneUpMax);
                     var changeInvite = Math.round(Math.random() * (inviteMax - inviteMin) + inviteMin);
-                    console.log('changeValue',changeValue);
-                    console.log('changeInvite',changeInvite);
+                    // console.log('changeValue',changeValue);
+                    // console.log('changeInvite',changeInvite);
                     await dao.updateIncOne(request,'tugTaskRecord',{_id:tugingRecord._id + ""},{aiStrength:changeValue,aiInvite:changeInvite});
                 
                     var tugChangeRecord = {};
@@ -332,12 +332,15 @@ const refreshTugRecord = async function(request,tug_id,tugSetting,startTime,rest
                     // 如果没有超越
                 } else {
                     var changeMax = (tugingRecord.myStrength - tugingRecord.aiStrength) < tugSetting.userBigger.ifWeakerChangeLqMax ? (tugingRecord.myStrength - tugingRecord.aiStrength) : tugSetting.userBigger.ifWeakerChangeLqMax;
-
-                    console.log('如果没有超越');
-                    var changeValue = Math.round(Math.random() * (tugSetting.userBigger.changeMax - tugSetting.userBigger.ifWeakerChangeLqMin) + tugSetting.userBigger.ifStongerChangeLqMin);
+                    // console.log('changeMax',changeMax);
+                    // console.log('如果没有超越');
+                    // console.log('changeMax',changeMax);
+                    var changeValue = Math.round(Math.random() * (changeMax - tugSetting.userBigger.ifWeakerChangeLqMin) + tugSetting.userBigger.ifStongerChangeLqMin);
                     var inviteMax = Math.round(changeValue / tugSetting.everyOneUpMin);
                     var inviteMin = Math.round(changeValue / tugSetting.everyOneUpMax);
                     var changeInvite = Math.round(Math.random() * (inviteMax - inviteMin) + inviteMin);
+                    // console.log('changeValue',changeValue);
+                    // console.log('changeInvite',changeInvite);
                     await dao.updateIncOne(request,'tugTaskRecord',{_id:tugingRecord._id + ""},{aiStrength:changeValue,aiInvite:changeInvite});
                     
                     var tugChangeRecord = {};
@@ -360,11 +363,11 @@ const refreshTugRecord = async function(request,tug_id,tugSetting,startTime,rest
             }
             // 机器人比较强
         } else if (tugingRecord.aiStrength < tugingRecord.myStrength) {
-            console.log('机器人比较强');
+            // console.log('机器人比较强');
             var upRnd = Math.random();
             // 结果是提升
             if (upRnd < tugSetting.aiBigger.aiUpRate) {
-                console.log('结果是提升');
+                // console.log('结果是提升');
                 var changeMin = tugSetting.aiBigger.changeLqMin;
                 var changeMax = tugSetting.aiBigger.changeLqMax;
 
@@ -372,8 +375,8 @@ const refreshTugRecord = async function(request,tug_id,tugSetting,startTime,rest
                 var inviteMax = Math.round(changeValue / tugSetting.everyOneUpMin);
                 var inviteMin = Math.round(changeValue / tugSetting.everyOneUpMax);
                 var changeInvite = Math.round(Math.random() * (inviteMax - inviteMin) + inviteMin);
-                console.log('changeValue',changeValue);
-                console.log('changeInvite',changeInvite);
+                // console.log('changeValue',changeValue);
+                // console.log('changeInvite',changeInvite);
                 await dao.updateIncOne(request,'tugTaskRecord',{_id:tugingRecord._id + ""},{aiStrength:changeValue,aiInvite:changeInvite});
                 
                 var tugChangeRecord = {};
@@ -394,11 +397,11 @@ const refreshTugRecord = async function(request,tug_id,tugSetting,startTime,rest
                 await dao.save(request,'tugChangeRecord',tugChangeRecord);
             }
         } else {
-            console.log('一样强');
+            // console.log('一样强');
             var upRnd = Math.random();
             // 结果是提升
             if (upRnd < tugSetting.equal.aiUpRate) {
-                console.log('结果是提升');
+                // console.log('结果是提升');
                 var changeMin = tugSetting.equal.changeLqMin;
                 var changeMax = tugSetting.equal.changeLqMax;
 
@@ -406,8 +409,8 @@ const refreshTugRecord = async function(request,tug_id,tugSetting,startTime,rest
                 var inviteMax = Math.round(changeValue / tugSetting.everyOneUpMin);
                 var inviteMin = Math.round(changeValue / tugSetting.everyOneUpMax);
                 var changeInvite = Math.round(Math.random() * (inviteMax - inviteMin) + inviteMin);
-                console.log('changeValue',changeValue);
-                console.log('changeInvite',changeInvite);
+                // console.log('changeValue',changeValue);
+                // console.log('changeInvite',changeInvite);
                 await dao.updateIncOne(request,'tugTaskRecord',{_id:tugingRecord._id + ""},{aiStrength:changeValue,aiInvite:changeInvite});
                 
                 var tugChangeRecord = {};
@@ -484,15 +487,15 @@ const tugInviteQuery = function(request,tug_id) {
 
 
             });
-        console.log('result.data',result.data.toString());
+        // console.log('result.data',result.data.toString());
         var data = JSON.parse(result.data.toString());
         if (data.c != 200) {
             return 0;
         } 
-        console.log('count',data.d.tugScene);
+        // console.log('count',data.d.tugScene);
         return data.d.tugScene;
     }catch(e) {
-        console.log('查询邀请失败！');
+        // console.log('查询邀请失败！');
         return 0;
     }
 } 
@@ -557,7 +560,7 @@ var format = function(date) {
 // // var timeStamp = new Date(new Date().setHours(0, 0, 0, 0)) / 1000;
 // //一天是86400秒   故n天前的时间戳为
 // var ThreeDayAgo = timeStamp - 86400 * n;
-// console.log(ThreeDayAgo)
+// // console.log(ThreeDayAgo)
 
 
 // var date = new Date()
@@ -573,6 +576,6 @@ var format = function(date) {
 
 // var date = new Date(new Date().setHours(0,0,0,0));
 // function daytime(day){
-//     console.log(+time-3600*24*day);
+//     // console.log(+time-3600*24*day);
 // }
 // daytime(4)//1484754854400

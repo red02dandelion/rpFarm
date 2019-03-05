@@ -225,7 +225,7 @@ module.exports = [
     },
     // 一键收获
     {
-        method:'GET',
+        method:'POST',
         path:'/animal/oneKeyHarvest',
         handler:farmService.onekeyHarvest,
         config:{
@@ -240,10 +240,41 @@ module.exports = [
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
+                }).unknown(),
+                payload:{
+                    lands:Joi.array().description('土地IDS')
+                }
             }
         }
     },
+
+    // 一键收获预览
+    {
+        method:'POST',
+        path:'/animal/totalHarvest',
+        handler:farmService.totalHarvestPreview,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '收获预览',
+            notes: '收获预览',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    lands:Joi.array().description('土地IDS')
+                }
+            }
+        }
+    },
+
+
+
         // 偷红包
     {
         method:'POST',
@@ -268,28 +299,28 @@ module.exports = [
             }
         }
     },
-    // 分享解锁土地
-     {
-        method:'POST',
-        path:'/animal/land/share/{id}',
-        handler:farmService.plt_steal,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '偷取',
-            notes: '偷取Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                params:{
-                     id:Joi.string().required().description("土地ID")
-                }
-            }
-        }
-    },
+    // // 分享解锁土地
+    //  {
+    //     method:'GET',
+    //     path:'/animal/land/share/{id}',
+    //     handler:farmService.plt_steal,
+    //     config:{
+    //         //拦截器
+    //         auth: {
+    //             strategy: 'bearer',
+    //             scope: 'USER'
+    //         },
+    //         description: '偷取',
+    //         notes: '偷取Api',
+    //         //tags: ['api'],
+    //         validate: {
+    //             headers: Joi.object({
+    //                 'authorization': Joi.string().required().description('需要加token请求头')
+    //             }).unknown(),
+    //             params:{
+    //                  id:Joi.string().required().description("土地ID")
+    //             }
+    //         }
+    //     }
+    // },
 ]
