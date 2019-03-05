@@ -955,15 +955,15 @@ exports.plt_steal = async function(request,reply){
 
 exports.steal = async function(request,reply){ 
     var user = request.auth.credentials;
-    // if (user.stealUnlocked != 1) {
-    //     reply({
-    //             "message":"偷红包未解锁！",
-    //             "statusCode":102,
-    //             "status":false
-    //     });
+    if (user.stealUnlocked != 1) {
+        reply({
+                "message":"偷红包未解锁！",
+                "statusCode":102,
+                "status":false
+        });
 
-    //     return ;
-    // }
+        return ;
+    }
     var friend = await dao.findById(request,'user',request.params.id);
     if (!friend) {
         reply({

@@ -204,9 +204,9 @@ exports.autoPlantStart = async function(request){
 // 开启自动种植
 exports.autoAnimalStart = async function(request){  
     var user = request.auth.credentials;
-    // if (user.farmUnlocked != 1) {
-    //     return ;
-    // }
+    if (user.farmUnlocked != 1) {
+        return ;
+    }
     var freeLands = await dao.find(request,'farm',{user_id:user._id + "",status:1},{},{code:1});
     if (freeLands.length > 0) {
         for (var index in freeLands) {

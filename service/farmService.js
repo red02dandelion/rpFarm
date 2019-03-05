@@ -265,14 +265,14 @@ exports.plantDetail = async function (request,reply) {
 exports.plant = async function (request,reply) { 
     var user = request.auth.credentials;
     // console.log('user',user);
-    // if (user.farmUnlocked != 1) {
-    //     reply({
-    //         "message":"您还未解锁牧场！",
-    //         "statusCode":108,
-    //         "status":false
-    //      });
-    //     return;
-    // }
+    if (user.farmUnlocked != 1) {
+        reply({
+            "message":"您还未解锁牧场！",
+            "statusCode":108,
+            "status":false
+         });
+        return;
+    }
     var plant = await dao.findById(request,'animal',request.payload.id);
     if (!plant) {
         reply({
@@ -651,14 +651,14 @@ async function pushPropsNoRepeat(props,newProps){
 
 exports.plt_steal = async function(request,reply){ 
     var user = request.auth.credentials;
-    // if (user.stealUnlocked) {
-    //     reply({
-    //             "message":"偷取未解锁！",
-    //             "statusCode":102,
-    //             "status":false
-    //     });
-    //     return;
-    // }
+    if (user.stealUnlocked) {
+        reply({
+                "message":"偷取未解锁！",
+                "statusCode":102,
+                "status":false
+        });
+        return;
+    }
     var land = await dao.findOne(request,'farm',{_id:request.params.id});
     if (!land) {
         reply({

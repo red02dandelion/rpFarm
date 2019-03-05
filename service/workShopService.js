@@ -5,6 +5,14 @@ exports.overView = async function(request,reply) {
     var start = new Date().getTime();
     // console.log('1111start---',start);
     var user = request.auth.credentials;
+    if (user.workshopUnlocked != 1) {
+        reply({
+            "message":"加工厂未解锁!",
+            "statusCode":102,
+            "status":false
+        });
+         return;
+    }
     var displayGoods;
     var displayGoodsArr = [];
     var goodsArr;
@@ -56,6 +64,14 @@ exports.overView = async function(request,reply) {
 }
 exports.produceGoods = async function(request,reply) { 
     var user = request.auth.credentials;
+    if (user.workshopUnlocked != 1) {
+        reply({
+            "message":"加工厂未解锁!",
+            "statusCode":102,
+            "status":false
+        });
+         return;
+    }
     var produce  = await dao.findOne(request,'produce',{user_id:user._id + "",status:1});
     if (produce) {
         reply({
@@ -123,6 +139,14 @@ exports.produceGoods = async function(request,reply) {
 
 exports.harvestProduce = async function(request,reply) {   
     var user = request.auth.credentials;
+    if (user.workshopUnlocked != 1) {
+        reply({
+            "message":"加工厂未解锁!",
+            "statusCode":102,
+            "status":false
+        });
+         return;
+    }
     var inProduce  = await dao.findOne(request,'produce',{user_id:user._id + "",status:1});
     if (inProduce) {
          await workShopService.updateProduce(request,inProduce);

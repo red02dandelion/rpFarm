@@ -4,10 +4,10 @@ var petService = require("../service/petService");
 exports.dog = async function(request,reply){   
     var user = request.auth.credentials;
     // await petService.addAllDogs(request);
-    // if (user.petUnlocked != 1) {
-    //      reply({"message":"查询失败，宠物未解锁！","statusCode":108,"status":false});
-    //      return;
-    // }
+    if (user.petUnlocked != 1) {
+         reply({"message":"查询失败，宠物未解锁！","statusCode":108,"status":false});
+         return;
+    }
     var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
     if(!dog) {
          reply({"message":"查询失败，未发现宠物！","statusCode":108,"status":false});
@@ -44,10 +44,10 @@ exports.addAllDogs = async function(request){
 }
 exports.feedDog = async function(request,reply){   
     var user = request.auth.credentials;
-    // if (user.petUnlocked != 1) {
-    //      reply({"message":"宠物未解锁！","statusCode":108,"status":false});
-    //      return;
-    // }
+    if (user.petUnlocked != 1) {
+         reply({"message":"宠物未解锁！","statusCode":108,"status":false});
+         return;
+    }
     var systemSet = await dao.findOne(request,'systemSet',{});
     var dog = await dao.findOne(request,'dog',{user_id:user._id + ""});
     var dogDetail = await dao.findOne(request,'settingPetGrow',{class:dog.class});

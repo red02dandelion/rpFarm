@@ -31,15 +31,15 @@ exports.rewards = async function(request,reply){
 exports.award = async function(request,reply){
     var user = request.auth.credentials;
     var wheelSet = await dao.findOne(request,'wheelSet',{});
-    // if (user.wheelUnlocked != 1) {
-    //     reply({
-    //                 "message":"转盘还未解锁！",
-    //                 "statusCode":102,
-    //                 "status":false
-    //     });
+    if (user.wheelUnlocked != 1) {
+        reply({
+                    "message":"转盘还未解锁！",
+                    "statusCode":102,
+                    "status":false
+        });
 
-    //     return ;
-    // }
+        return ;
+    }
     if (request.payload.type == 1) {  // 1 消耗金币 2 消耗优惠券
         if (user.gold < wheelSet.wheelFeeGold) {
             reply({
