@@ -56,7 +56,7 @@ exports.feedDog = async function(request,reply){
         return;
     }
 
-    var dogFeedCount = await dao.findCount(request,'dogFeedRecord',{dog_id:dog._id + "",dogClass:dog.class});
+    var dogFeedCount = await dao.findCount(request,'feedRecord',{dog_id:dog._id + "",class:dog.class});
     if (dogFeedCount >= dogDetail.nexClass_needFeed) {
         reply({"message":"请先升级！","statusCode":102,"status":false});
         return;
@@ -111,7 +111,7 @@ exports.feedDog = async function(request,reply){
     // 增加宠物饱食度
     var bsd = (dog.bsd + systemSet.BsdAddPerFeed) > systemSet.petMaxBsd ? systemSet.petMaxBsd :(dog.bsd + systemSet.BsdAddPerFeed);
     await dao.updateOne(request,'dog',{_id:dog._id + ""},{bsd:bsd});
-    var dogFeedCount = await dao.findCount(request,'dogFeedRecord',{dog_id:dog._id + "",dogClass:dog.class});
+    
     var feedRecord = {};
     feedRecord.createTime = new Date().getTime();
     feedRecord.dog_id = dog._id + "";
@@ -120,6 +120,7 @@ exports.feedDog = async function(request,reply){
     feedRecord.nickname = user.nickname;
     feedRecord.user_id = user._id + "";
     await dao.save(request,'feedRecord',feedRecord);
+    var dogFeedCount = await dao.findCount(request,'feedRecord',{dog_id:dog._id + "",class:dog.class});
     if (dogFeedCount >= dogDetail.nexClass_needFeed && dogDetail.nexClassNeedProp == -1 && dogDetail.upGradeGold == 0) {
         await dao.updateIncOne(request,'dog',{_id:dog._id + ""},{class:1});
     }
@@ -146,8 +147,7 @@ exports.upDog = async function(request,reply){
         return;
     }
     var warahouseProp;
-
-    var dogFeedCount = await dao.findCount(request,'dogFeedRecord',{dog_id:dog._id + "",dogClass:dog.class});
+    var dogFeedCount = await dao.findCount(request,'feedRecord',{dog_id:dog._id + "",class:dog.class});
     if (dogFeedCount < dogDetail.nexClass_needFeed) {
         reply({"message":"喂养次数不足无法升级！","statusCode":102,"status":false});
         return;
@@ -223,7 +223,6 @@ exports.updateDog = async function(request,dog,dogDetail){
     dogInfo.feedGold = dogDetail.feedGold;
     dogInfo.upGradeGold = dogDetail.upGradeGold;
     var spendProps = [];
-    var dogFeedCount = await dao.findCount(request,'dogFeedRecord',{dog_id:dog._id + "",dogClass:dog.class});
     if (dogInfo.feedCount < dogInfo.nexClass_needFeed) {
         if (dogDetail.needPropA != -1) {
             var needPropA = {}; 
