@@ -120,7 +120,7 @@ exports.checkTips = async function(request){
      if (user.farmUnlocked == 1) {
 
      } else {
-        var playerSetting = await dao.findOne(request,'playerSetting',{id:1003});
+        var playerSetting = await dao.findOne(request,'playerSetting',{id:1011});
         if (user.class >= playerSetting.class) {
             await dao.updateOne(request,'user',{_id:user._id + ""},{farmUnlocked:1});
             var tipId = "farm";
