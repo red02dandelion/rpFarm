@@ -43,8 +43,7 @@ exports.cathSlave = async function(request,reply){
     // if (hisCatchRecord) {
     //     await updatecatchRecord(request,hisCatchRecord);
     //     if (hisCatchRecord.endStatus == 0) {
-    //         enemay = await dao.findById(request,'user',hisCatchRecord.user_id + "");
-    //         isTakeAway = true;
+    //         enemay = await dao.findById(request,'user',hisCatchRecord.user_id + ""); 
     //         // console.log('1111enemay._id',enemay._id);
     //          // console.log('22222user._id',user._id);
     //         if (enemay._id + "" == user._id + "") {
@@ -399,7 +398,7 @@ exports.addLandUnlockTips = async function(request,user,code,unlockClass){
     tip.siteId = code;
     tip.des = '解锁一块新土地';
     tip.createTime = new Date().getTime();
-    tip.unclockClass = unclockClass;
+    tip.unclockClass = unlockClass;
     tip.unlockType = tipType; // 1 工作区 2 土地 3 养殖场
     tip.username = user.username;
     tip.user_id = user._id + "";
@@ -416,7 +415,7 @@ exports.addFarmUnlockTips = async function(request,user,code,unlockClass){
     tip.siteId = code;
     tip.des = '解锁一块新牧场';
     tip.createTime = new Date().getTime();
-    tip.unclockClass = unclockClass;
+    tip.unclockClass = unlockClass;
     tip.unlockType = tipType; // 1 工作区 2 土地 3 养殖场
     tip.username = user.username;
     tip.user_id = user._id + "";
@@ -640,6 +639,9 @@ async function updatecatchRecord(request,catchRecord){
     var workArea = await dao.findOne(request,'workArea',{id:catchRecord.work_id});
     var slave = await dao.findById(request,'user',catchRecord.slave_id + "");
     var workProductDash = await dao.findOne(request,'workProductDash',{work_id:catchRecord.work_id,user_id:catchRecord.user_id + ""});
+    var deadline =  time;  // 本次收益的计算截止时间
+    var addTime = deadline - catchRecord.updateTime; // 此次工作的时间
+    
     if (!workProductDash) {
         workProductDash = {};
         workProductDash.user_id = catchRecord.user_id + "";
@@ -671,7 +673,7 @@ async function updatecatchRecord(request,catchRecord){
 
     var status = 0;  // 建筑状态  0 建筑闲置 1 建筑正常工作中 2 建筑工作停止
     var slaveStatus = 0;  // 0 没有跟班 1 有跟班正常 2 有跟班累瘫 3 有跟班被抢走 
-    var deadline =  time;  // 本次收益的计算截止时间
+    
     
     if (time >= catchRecord.slaveLeaveTime) { // 如果跟班已结束，即到了最大工作时间
         status = 2;
@@ -699,7 +701,7 @@ async function updatecatchRecord(request,catchRecord){
     // } 
     
   
-    var addTime = deadline - catchRecord.updateTime; // 此次工作的时间
+   
     var fixedProductTotalCount = parseInt((deadline - catchRecord.createTime ) / (60 * 1000));
     // console.log('fixedProductTotalCount',fixedProductTotalCount);
     var dropProductTotalCount = parseInt((deadline - catchRecord.createTime ) / (30 * 60 * 1000));
