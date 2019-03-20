@@ -659,6 +659,9 @@ exports.totalHarvestPreview = async function (request,reply) {
                 continue;
             }
             var harvest = await dao.findOne(request,'harvest',{grow_id:land.grow_id});
+            if (!harvest) {
+                continue;
+            }
             data.gold = data.gold + harvest.gold;
             data.plt_sessence = data.plt_sessence + harvest.plt_sessence;
             data.hb = data.hb + harvest.hb;
