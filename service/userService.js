@@ -216,6 +216,7 @@ exports.userLogin = async function(request,reply){
     var farmUlcCdts = await dao.find(request,'farmUlcCdts',{},{},{code:1});
     var shareCf = await dao.find(request,'shareSettings',{});
     var unlockCf = await dao.find(request,'playerSetting',{});
+    await functionService.checkTips(request);
     var currentTime = new Date().getTime();
     var data = {
         user:user,
@@ -271,6 +272,7 @@ exports.userinfo = async function(request,reply){
         currentTime:currentTime,
         unlockCf:unlockCf
     };
+    await functionService.checkTips(request);    
     reply({"message":"用户登陆成功","statusCode":101,"status":true,"resource":data});
 }
 
@@ -278,6 +280,7 @@ exports.userinfo = async function(request,reply){
 //登录验证
 exports.lands = async function(request,reply){ 
      var user = request.auth.credentials;
+     await functionService.checkTips(request);   
      await userService.updateLandLockstatus(request,user);  
      await landService.updateUserLandGrows(request,user);
      var lands = await dao.find(request,'land',{user_id:user._id + ""});
@@ -288,11 +291,13 @@ exports.lands = async function(request,reply){
         landUlcCdts:landUlcCdts,
         currentTime:currentTime
     };
+        
     reply({"message":"用户登陆成功","statusCode":101,"status":true,"resource":data});
 }
 //登录验证
 exports.farms = async function(request,reply){ 
     var user = request.auth.credentials;
+    await functionService.checkTips(request);  
     await userService.updateFarmLockstatus(request,user);
     await farmService.updateUserLandGrows(request,user);
     var farms = await dao.find(request,'farm',{user_id:user._id + ""});
@@ -303,6 +308,8 @@ exports.farms = async function(request,reply){
         farmUlcCdts:farmUlcCdts,
         currentTime:currentTime
     };
+          
+    
 }
 //登录验证
 exports.userAlibilty = async function(request,reply){
