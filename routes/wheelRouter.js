@@ -23,6 +23,26 @@ module.exports = [
             }
         }
     },
+     {
+        method:'GET',
+        path:'/wheelSet/todayCount',
+        handler:wheelService.todyWheelCount,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '转盘奖励',
+            notes: '转盘奖励Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
     // 
     {
         method:'POST',

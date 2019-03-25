@@ -21,15 +21,28 @@ exports.rewards = async function(request,reply){
                 "statusCode":107,
                 "status":true,
                 "resource":wheelSets,
-                "ext":wheelSetting
+                "ext":wheelSetting,
+                "todayCount":1
         });
 
         return ;
 }
-
+// 抽奖
+exports.todyWheelCount = async function(request,reply){  
+    var user = request.auth.credentials; 
+    let todayString = format1("yyyy/M/d",new Date());
+    var todayCount = await dao.findCount(request,'wheelRecord',{user_id:user._id + "",dayString:todayString,type:1});
+    reply({
+                "message":"查询成功！",
+                "statusCode":107,
+                "status":true,
+                "todayCount":todayCount
+    });
+}
 // 抽奖
 exports.award = async function(request,reply){
     var user = request.auth.credentials;
+    let todayString = format1("yyyy/M/d",new Date());
     var wheelSet = await dao.findOne(request,'wheelSet',{});
     // if (user.wheelUnlocked != 1) {
     //     reply({
@@ -41,6 +54,17 @@ exports.award = async function(request,reply){
     //     return ;
     // }
     if (request.payload.type == 1) {  // 1 消耗金币 2 消耗优惠券
+     
+        var todayCount = await dao.findCount(request,'wheelRecord',{user_id:user._id + "",dayString:todayString,type:1});
+        if (todayCount >= 10) {
+            reply({
+                        "message":"今日次数已用完！",
+                        "statusCode":108,
+                        "status":false
+            });
+
+            return ;
+        }
         if (user.gold < wheelSet.wheelFeeGold) {
             reply({
                     "message":"您没有那么多金币！",
@@ -234,8 +258,18 @@ exports.award = async function(request,reply){
         hbGetRecord.name = user.name;
         await dao.save(request,'hbGetRecord',hbGetRecord);
     }
-
-    console.log("data",data);
+    var wheelRecord = {};
+    wheelRecord.createTime = new Date().getTime();
+    wheelRecord.user_id = user._id + "";
+    wheelRecord.username = user.username;
+    wheelRecord.select = select;
+    wheelRecord.mustData = mustData;
+    wheelRecord.data = data;
+    // let todayString = format1("yyyy/M/d",new Date());
+    wheelRecord.dayString = todayString;
+    wheelRecord.type = request.payload.type;
+    await dao.save(request,'wheelRecord',wheelRecord);
+    // console.log("data",data);
     reply({
                 "message":"抽奖成功",
                 "statusCode":101,
@@ -245,7 +279,22 @@ exports.award = async function(request,reply){
     return ;
 
 }
-
+//时间格式化
+function format1(fmt,data) { //author: meizz 
+    var o = {
+        "M+": data.getMonth() + 1, //月份 
+        "d+": data.getDate(), //日 
+        "h+": data.getHours(), //小时 
+        "m+": data.getMinutes(), //分 
+        "s+": data.getSeconds(), //秒 
+        "q+": Math.floor((data.getMonth() + 3) / 3), //季度 
+        "S": data.getMilliseconds() //毫秒 
+    };
+    if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (data.getFullYear() + "").substr(4 - RegExp.$1.length));
+    for (var k in o)
+    if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+    return fmt;
+}
 /**
  * 概率计算方法
  */

@@ -660,6 +660,7 @@ exports.totalHarvestPreview = async function (request,reply) {
             }
             var harvest = await dao.findOne(request,'harvest',{grow_id:land.grow_id});
             if (!harvest) {
+                console.log('totalHarvestPreview:数据记录异常；无harvest');
                 continue;
             }
             data.gold = data.gold + harvest.gold;
@@ -767,7 +768,7 @@ exports.harvestToUser = async function(request,land_id){
         await dao.updateOne(request,'harvest',{_id:harvest._id + ""},{status:1});
          // 更新土地
         await dao.updateOne(request,'land',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",animationId:-1,pltId:0});
-    }
+    }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
     delete harvest._id;
     delete harvest.grow_id;
     delete harvest.land_id;
