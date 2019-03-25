@@ -25,6 +25,73 @@ module.exports = [
             }
         }
     },
+
+    
+    // 用户信息
+    {
+        method:'GET',
+        path:'/user/info',
+        handler:userService.userinfo,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '用户登陆接口',
+            notes: '用户登陆接口',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
+
+     // 用户登录
+    {
+        method:'GET',
+        path:'/user/lands',
+        handler:userService.lands,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '用户登陆接口',
+            notes: '用户登陆接口',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
+
+         // 用户登录
+    {
+        method:'GET',
+        path:'/user/farms',
+        handler:userService.farms,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '用户登陆接口',
+            notes: '用户登陆接口',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
     // 用户登录
     {
         method:'GET',
@@ -268,7 +335,26 @@ module.exports = [
        }
     },
 
-  
+       // 更新用户信息
+    {
+       method:'GET',
+       path:'/user/online',
+       handler:userService.online,
+       config:{
+           auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+           description: '更新用户信息',
+           notes: '更新用户信息',
+           tags: ['api'],
+           validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+           }
+       }
+    },
 
     //   // 更新登录密码
     // {
@@ -712,6 +798,55 @@ module.exports = [
                     page : Joi.number().default(0).description("页数"),
                     size : Joi.number().default(0).description("长度")
                 },                
+            }
+        }
+    },
+
+         //获取用户好友列表
+    {
+        method:'POST',
+        path:'/user/rank/{page}/{size}',
+        handler:userService.rank,
+        config:{
+            auth:{
+                strategy: 'bearer',
+                scope: ["USER"]
+            }, 
+            description: '获取用户好友列表',
+            notes: '获取用户好友列表',
+            //tags: ['api'],
+            validate: {
+                 headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    page : Joi.number().default(0).description("页数"),
+                    size : Joi.number().default(0).description("长度")
+                }, 
+                payload:{
+                    type : Joi.number().default(0).description("1 总排行 2 好友排行")
+                }            
+            }
+        }
+    },
+
+        //获取用户好友列表
+    {
+        method:'GET',
+        path:'/user/buyGuanjia',
+        handler:userService.buyGuanjia,
+        config:{
+            auth:{
+                strategy: 'bearer',
+                scope: ["USER"]
+            }, 
+            description: '获取用户好友列表',
+            notes: '获取用户好友列表',
+            tags: ['api'],
+            validate: {
+                 headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()                
             }
         }
     },

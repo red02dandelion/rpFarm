@@ -1,4 +1,5 @@
 ﻿/**
+ * 
  * Created by chenda on 2016/4/14.
  */
 
@@ -165,7 +166,19 @@ var scheduleService = require('./service/scheduleService');
                 //throw err;
             }
             console.log('Server runing at:',server.info.uri);
-            server.log(['debug'], 'Started...');
+
+            console.log('Math.round(1.9)',Math.round(1.9));
+            console.log('parseInt(1.9)',parseInt(1.9));
+
+            var testObjs = [1,2,3,4,5,6];
+            for (var index in testObjs) {
+                var obj = testObjs[index];
+                if (obj == 3) {
+                    continue;
+                }
+                console.log(obj);
+            }
+
         });
 
     });

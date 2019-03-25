@@ -17,7 +17,7 @@ exports.findById = function(request,collectionName,id = "",notShow = {}){
 
         var db = request.server.plugins['hapi-mongodb'].db;
         var ObjectID = request.server.plugins['hapi-mongodb'].ObjectID;
-        console.log('id is ',id);
+        // console.log('id is ',id);
         
         db.collection(collectionName).findOne({"_id": new ObjectID(id)},function(err,result){
             if(err){

@@ -482,10 +482,10 @@ exports.buyBL = async function(request,reply){
     data.objId = "99";
     data.timestamp = new Date().getTime() + "";
     data.opCode = "10010";
-    console.log("befor data is",data);
+    // console.log("befor data is",data);
     data.mac = CryptoJS.MD5(data.timestamp+data.userId+data.amount+data.objId+data.opCode+data.blnum+data.token).toString();
     delete data.token;
-    console.log(data);
+    // console.log(data);
     urllib.request('http://letter.qzzapp.com/letter/api/reqTransaction.php',{
         method: 'POST',
         headers: {
@@ -495,9 +495,9 @@ exports.buyBL = async function(request,reply){
         content: JSON.stringify(data)
     }).then(async function (result) {
     // result: {data: buffer, res: response object}
-        console.log(result.data.toString());
+        // console.log(result.data.toString());
         var res = result.data.toString();
-        console.log('res',res);
+        // console.log('res',res);
         res = JSON.parse(res);
         // reply('12312312');
         if (res.head.error_code != 0) {
@@ -525,7 +525,7 @@ exports.buyBL = async function(request,reply){
                 "data":{seq:res.body.seq}
         });
     }).catch(function (err) {
-        console.error(err);
+        // console.error(err);
          reply({
                 "message":"支付请求失败",
                 "statusCode":102,
@@ -555,7 +555,7 @@ exports.qrBuy = async function(request,reply){
         'timestamp':time+""
     };
     data.mac = CryptoJS.MD5(data.seq+data.timestamp+"kbrqgjpjNhe5DUOYpqDJ").toString();
-    console.log('data is',data);
+    // console.log('data is',data);
     urllib.request('http://letter.qzzapp.com/letter/api/confirmTransaction.php',{
         method: 'POST',
         headers: {
@@ -565,9 +565,9 @@ exports.qrBuy = async function(request,reply){
         content: JSON.stringify(data)
     }).then(async function (result) {
     // result: {data: buffer, res: response object}
-        console.log(result.data.toString());
+        // console.log(result.data.toString());
         var res = result.data.toString();
-        console.log('res',res);
+        // console.log('res',res);
         res = JSON.parse(res);
         // reply('12312312');
         if (res.head.error_code != 0) {
@@ -589,9 +589,9 @@ exports.qrBuy = async function(request,reply){
         }
         if (order.status == 0) {
             await dao.updateOne(request,'order',{seq:request.payload.seq},{status:1});
-            console.log('order is',order);
-            console.log('Number(order.blnum) is',Number(order.blnum));
-            console.log('-Number(order.amount) is',-Number(order.amount));
+            // console.log('order is',order);
+            // console.log('Number(order.blnum) is',Number(order.blnum));
+            // console.log('-Number(order.amount) is',-Number(order.amount));
             await dao.updateIncOne(request,'user',{_id:user._id+""},{areca:Number(order.blnum),integral:-Number(order.amount)});
             reply({
                 "message":"交易完成！",
@@ -611,7 +611,7 @@ exports.qrBuy = async function(request,reply){
         
        
     }).catch(function (err) {
-        console.error(err);
+        // console.error(err);
     });
 
 }

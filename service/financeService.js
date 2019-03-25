@@ -161,10 +161,10 @@ exports.transfer = async function(request,reply){
     var fee = gold * systemSet.transfer_fee_ratio;
     var totalGold = gold + fee;
     fee = parseFloat(fee.toFixed(2));
-    // console.log('fee is',fee);
-    // console.log('gold is',gold);
-    // console.log('totalGold is',totalGold);
-    // console.log('systemSet.withdraw_ratio is',systemSet.withdraw_ratio);
+    // // console.log('fee is',fee);
+    // // console.log('gold is',gold);
+    // // console.log('totalGold is',totalGold);
+    // // console.log('systemSet.withdraw_ratio is',systemSet.withdraw_ratio);
     if (gold <= 0) {
         reply({
                 "message":"输入金额不合法",
@@ -191,7 +191,7 @@ exports.transfer = async function(request,reply){
     }
     // var dayQuota = classTotal * 100;
     var dayQuota = 0;
-    console.log('classtotal is',classTotal);
+    // console.log('classtotal is',classTotal);
     if (0 < classTotal < 15) {
         dayQuota = 500;
     } else if (classTotal >= 15 && classTotal < 30) {
@@ -299,7 +299,7 @@ exports.award = async function(request,reply){
     }
     var gamSet = systemSet.wheels;
     var wheels = getValues(gamSet);
-    // console.log('wheels is',wheels);
+    // // console.log('wheels is',wheels);
     var number ;
     var select = Choose(wheels);
     var fee = Number(0 - systemSet.bet_wheel_fee);
@@ -463,10 +463,10 @@ var formatDateDay = function(date) {
 var formatDateMonth = function(date) {
 
     var year = date.getFullYear();
-    console.log('year  to string ',year.toString());
+    // console.log('year  to string ',year.toString());
     var month = date.getMonth() + 1;
     month = (month < 10) ? '0' + month : month;
-        console.log('month  to string ',month.toString());
+        // console.log('month  to string ',month.toString());
     
 
     
@@ -510,8 +510,8 @@ function getValues(obj){
  
     let objList =[];
     for(let item in obj){
-        // console.log(item);
-        // console.log(obj[item]);
+        // // console.log(item);
+        // // console.log(obj[item]);
         objList.push(obj[item]);
     }
     return objList;

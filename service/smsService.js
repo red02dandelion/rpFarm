@@ -123,8 +123,8 @@ function postFrom(path,host,postData){
                 options = JSON.stringify(options)
                 var Time = new Date()
                 var ReTime = Time.getFullYear() + '-' + (Time.getMonth() + 1) + '-' + Time.getDate() + ' ' + Time.getHours() + ':' + Time.getMinutes()
-                console.log(ReTime + ' POST请求数据库错误')
-                console.log(ReTime + '请求头：' + options)
+                // console.log(ReTime + ' POST请求数据库错误')
+                // console.log(ReTime + '请求头：' + options)
                 var errMessage = JSON.stringify({
                     'status': false,
                     'info': ReTime + ' POST请求数据' + res1.statusCode + '错误，请联系系统管理员'
@@ -148,7 +148,7 @@ function postFrom(path,host,postData){
                 options = JSON.stringify(options)
                 var Time = new Date()
                 var ReTime = Time.getFullYear() + '-' + (Time.getMonth() + 1) + '-' + Time.getDate() + ' ' + Time.getHours() + ':' + Time.getMinutes()
-                console.log(ReTime + ' POST请求数据库500错误,请求头：' + options + ',请求内容:' + postData + '，错误代码：' + err)
+                // console.log(ReTime + ' POST请求数据库500错误,请求头：' + options + ',请求内容:' + postData + '，错误代码：' + err)
                 resolve(null);
             }
         })

@@ -6,6 +6,7 @@
 const dao = require("../dao/dao");
 var CryptoJS = require("crypto-js");
 const userService = require('../service/userService');
+const petService = require('../service/petService');
 const settings = require('../settings');
 // var payService = require('../service/payService');
 
@@ -26,7 +27,7 @@ exports.userListFilter = async function(request,reply){
     if (request.payload.where) {
         where = request.payload.where;
     }
-    console.log('where',where);
+    // console.log('where',where);
     var userList = await dao.find(request,'user',where,{},{createTime:-1},request.params.size,request.params.page);
     var sum = await dao.findCount(request,"user",where);
     // for (var index in userList) {
@@ -49,7 +50,7 @@ exports.userNamedetail = async function(request,reply){
 
 exports.putUser = async function(request,reply){ 
     var user = await dao.findById(request,'user',request.params.userId);
-    console.log('req.payload is ',request.payload);
+    // console.log('req.payload is ',request.payload);
     var admin = request.auth.credentials;
     var apply = request.payload;
     if (apply.password) {
@@ -63,7 +64,7 @@ exports.putUser = async function(request,reply){
     } else {
         apply.scope = [];
     }
-    console.log('apply is ',apply);
+    // console.log('apply is ',apply);
     // if (apply.gold) {
     //     var newGold = parseFloat(apply.gold.toFixed(2));
     //     if (newGold != user.gold) {
@@ -77,9 +78,31 @@ exports.putUser = async function(request,reply){
 exports.adminRecharge = async function(request,reply){ 
     var admin = request.auth.credentials;
     var user = await dao.findById(request,'user',request.params.userId);
-    if (request.params.gold <= 0) {
+    if (user.gold +  request.payload.gold < 0) {
+        // console.log('user.gold',user.gold);
+        // console.log('request.payload.gol',request.payload.gold);
         reply({"message":"金额不合法","statusCode":102,"status":false});
+        return;
+    }
+    if (user.power +  request.payload.power < 0) {
+        reply({"message":"体力不合法","statusCode":102,"status":false});
          return;
+    }
+    if (user.dimond +  request.payload.dimond < 0) {
+        reply({"message":"钻石不合法","statusCode":102,"status":false});
+        return;
+    }
+    if ( request.payload.experience < 0) {
+        reply({"message":"经验不合法","statusCode":102,"status":false});
+        return;
+    }
+    if (user.hb +   request.payload.hb < 0) {
+        reply({"message":"红包不合法","statusCode":102,"status":false});
+        return;
+    }
+    if (user.plt_sessence +   request.payload.plt_sessence < 0) {
+        reply({"message":"精华不合法","statusCode":102,"status":false});
+        return;
     }
     var gold = Math.round(request.payload.gold);
     var power = Math.round(request.payload.power);
@@ -88,7 +111,31 @@ exports.adminRecharge = async function(request,reply){
     var hb = Math.round(request.payload.hb * 100) / 100;
     var plt_sessence = Math.round(request.payload.plt_sessence);
     await dao.updateIncOne(request,'user',{_id:request.params.userId + ""},{gold:gold,power:power,dimond:dimond,experience:experience,hb:hb,plt_sessence:plt_sessence});
-    
+    if (request.payload.propId != -1) {
+        var prop = await dao.findOne(request,'prop',{id:request.payload.propId});
+        if (prop == null) {
+            reply({"message":"道具不存在","statusCode":102,"status":false});
+            return;
+        }
+        prop.count = request.payload.propCount;
+        var prop_id = prop._id + "";
+        var propId = prop.id; 
+        var propInHouse = await dao.findOne(request,'warahouse',{prop_id:prop._id + "",user_id:user._id + ""});
+        // // console.log('33333',propInHouse);
+        if (propInHouse) {
+            await dao.updateIncOne(request,'warahouse',{_id:propInHouse._id + ""},{count:prop.count});
+        } else {
+            //prop进warahouse 除去_id、id增加prop_id、propId、user_id、username的全部信息
+            delete prop._id;
+            delete prop.id;
+            propInHouse = prop;
+            propInHouse.prop_id = prop_id;
+            propInHouse.propId = propId;
+            propInHouse.user_id = user._id + "";
+            propInHouse.username = user.username;
+            await dao.save(request,'warahouse',propInHouse);
+        }
+    }
     var adminRecarge = request.payload;
     adminRecarge.createTime = new Date().getTime();
     adminRecarge.admin_username = admin.username;
@@ -100,6 +147,8 @@ exports.adminRecharge = async function(request,reply){
     adminRecarge.experience = experience;
     adminRecarge.hb = hb;
     adminRecarge.plt_sessence = plt_sessence;
+    adminRecarge.propId = request.payload.propId;
+    adminRecarge.propCount = request.payload.propCount;
     await dao.save(request,'adminRecharge',adminRecarge);
     reply({"message":"更新成功","statusCode":101,"status":true});
 }
@@ -109,7 +158,7 @@ exports.adminRecharge = async function(request,reply){
 //     if (request.payload.where) {
 //         where = request.payload.where;
 //     }
-//     // console.log('where',where);
+//     // // console.log('where',where);
 //     var userList = await dao.find(request,'adminRecharge',where,{},{createTime:-1},request.params.size,request.params.page);
 //     var sum = await dao.findCount(request,"adminRecharge",where);
 //     // for (var index in userList) {
@@ -124,7 +173,7 @@ exports.sons = async function(request,reply){
     var user = await dao.findById(request,'user',request.params.id);
     
     var sons = await dao.find(request,'user',{parentUsername:user.username},{},{createTime:-1});
-    console.log('son is' + sons);
+    // console.log('son is' + sons);
     reply({"message":"查询成功","statusCode":101,"status":true,"resource":sons});
 }
 
@@ -134,7 +183,7 @@ exports.rechageList = async function(request,reply){
     if (request.payload.where) {
         where = request.payload.where;
     }
-    // console.log('where',where);
+    // // console.log('where',where);
     var userList = await dao.find(request,'recharge',where,{},{createTime:-1},request.params.size,request.params.page);
     var sum = await dao.findCount(request,"recharge",where);
     var groupSum = await dao.findSum(request,'recharge',{$match:where},{$group:{_id:null,sum:{$sum:"$gold"}}});
@@ -178,6 +227,29 @@ exports.systemInfo = async function(request,reply){
     reply({"message":"查询成功","statusCode":107,"status":true,"resource":systemSet});
 }
 
+
+exports.tlSystemInfo = async function(request,reply){ 
+    var systemSet = await dao.findOne(request,'systemSet2',{});
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":systemSet});
+}
+
+
+exports.tugSystemInfo = async function(request,reply){ 
+    var systemSet = await dao.findOne(request,'tugSetting',{});
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":systemSet});
+}
+
+exports.moneyTreeInfo = async function(request,reply){ 
+    var systemSet = await dao.findOne(request,'moneyTreeSet',{});
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":systemSet});
+}
+
+
+exports.wheelSetInfo = async function(request,reply){ 
+    var systemSet = await dao.findOne(request,'wheelSet',{});
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":systemSet});
+}
+
 exports.putSystem = async function(request,reply){ 
     var systemSet = await dao.findOne(request,'systemSet',{});
     var aplly = request.payload.aplly;
@@ -186,33 +258,86 @@ exports.putSystem = async function(request,reply){
     }
     if (aplly.tag1Name) {
         await dao.updateOne(request,'plantQuality',{id:1},{name:aplly.tag1Name});
+        await dao.updateOne(request,'animalQuality',{id:1},{name:aplly.tag1Name});
     }
     if (aplly.tag2Name) {
         await dao.updateOne(request,'plantQuality',{id:2},{name:aplly.tag2Name});
+         await dao.updateOne(request,'animalQuality',{id:2},{name:aplly.tag2Name});
     }
     if (aplly.tag3Name) {
         await dao.updateOne(request,'plantQuality',{id:3},{name:aplly.tag3Name});
+         await dao.updateOne(request,'animalQuality',{id:3},{name:aplly.tag3Name});
     }
     if (aplly.tag4Name) {
         await dao.updateOne(request,'plantQuality',{id:4},{name:aplly.tag4Name});
+         await dao.updateOne(request,'animalQuality',{id:4},{name:aplly.tag1Name});
     }
     if (aplly.tag5Name) {
         await dao.updateOne(request,'plantQuality',{id:5},{name:aplly.tag5Name});
+         await dao.updateOne(request,'animalQuality',{id:5},{name:aplly.tag4Name});
     }
     if (aplly.tag6Name) {
         await dao.updateOne(request,'plantQuality',{id:6},{name:aplly.tag6Name});
+         await dao.updateOne(request,'animalQuality',{id:6},{name:aplly.tag5Name});
     }
     if (aplly.tag7Name) {
         await dao.updateOne(request,'plantQuality',{id:0},{name:aplly.tag7Name});
+         await dao.updateOne(request,'animalQuality',{id:0},{name:aplly.tag6Name});
     }
-    console.log('--systemset' + systemSet + "aplly" + aplly);
-    console.log('aplly is',aplly);
+    // console.log('--systemset' + systemSet + "aplly" + aplly);
+    // console.log('aplly is',aplly);
 
     var updateRes = await dao.updateOne(request,"systemSet",{_id:systemSet._id},aplly);
     // if ()
     reply({"message":"更新成功","statusCode":107,"status":true});
 }
 
+exports.putTlSystem = async function(request,reply){ 
+    var systemSet = await dao.findOne(request,'systemSet2',{});
+    var aplly = request.payload.aplly;
+    if (aplly == {}) {
+        reply({"message":"内容错误","statusCode":102,"status":false});
+    }
+    
+    var updateRes = await dao.updateOne(request,"systemSet2",{_id:systemSet._id},aplly);
+    // if ()
+    reply({"message":"更新成功","statusCode":107,"status":true});
+}
+exports.putTugSystem = async function(request,reply){ 
+    var systemSet = await dao.findOne(request,'tugSetting',{});
+    var aplly = request.payload.aplly;
+    if (aplly == {}) {
+        reply({"message":"内容错误","statusCode":102,"status":false});
+    }
+    
+    var updateRes = await dao.updateOne(request,"tugSetting",{_id:systemSet._id},aplly);
+    // if ()
+    reply({"message":"更新成功","statusCode":107,"status":true});
+}
+
+exports.putMoneyTreeInfo = async function(request,reply){ 
+    var systemSet = await dao.findOne(request,'moneyTreeSet',{});
+    var aplly = request.payload.aplly;
+    if (aplly == {}) {
+        reply({"message":"内容错误","statusCode":102,"status":false});
+    }
+    
+    var updateRes = await dao.updateOne(request,"moneyTreeSet",{_id:systemSet._id},aplly);
+    // if ()
+    reply({"message":"更新成功","statusCode":107,"status":true});
+}
+
+exports.putWheelSet = async function(request,reply){ 
+    var systemSet = await dao.findOne(request,'wheelSet',{});
+    // var aplly = request.payload.aplly;
+    // if (aplly == {}) {
+    //     reply({"message":"内容错误","statusCode":102,"status":false});
+    // }
+    
+    var updateRes = await dao.updateOne(request,"wheelSet",{_id:systemSet._id + ""},request.payload);
+    // if ()
+    reply({"message":"更新成功","statusCode":107,"status":true});
+}
 exports.putseed = async function(request,reply){
     var payload = request.payload;
     var seed = await dao.findById(request,'seed',request.params.id);
@@ -277,16 +402,16 @@ exports.putDog = async function(request,reply){
         payload.dogname = payload.name;
     }
     delete payload.name;
-    // console.log('payload is',payload);
-    // console.log('req params id is',request.params.id);
+    // // console.log('payload is',payload);
+    // // console.log('req params id is',request.params.id);
     var seed = await dao.findById(request,'dog',request.params.id);
     if (seed == null) {
         reply({"message":"宠物不存在","statusCode":102});
         return;
     }
-    // console.log('dog is',seed);
+    // // console.log('dog is',seed);
     var updateRes = await dao.updateOne(request,'dog',{_id:request.params.id},payload);
-    // console.log('updateRes is',updateRes);
+    // // console.log('updateRes is',updateRes);
     reply({"message":"修改成功","statusCode":101,"status":true});
 }
 exports.doglist = async function(request,reply){  
@@ -360,7 +485,7 @@ exports.putWithdrawalStatus = async function(request,reply){
     // reply({"message":"更新成功","statusCode":101,"status":true});
 }
 exports.withdrawalList = async function(request,reply) { 
-    console.log('request is ',request); 
+    // console.log('request is ',request); 
     var where = {};
     if (request.payload.where) {
         where = request.payload.where;
@@ -378,7 +503,7 @@ exports.withdrawalList = async function(request,reply) {
 }
 
 exports.transferList = async function(request,reply) { 
-    // console.log('request is ',request); 
+    // // console.log('request is ',request); 
     var where = {};
     if (request.payload.where) {
         where = request.payload.where;
@@ -396,7 +521,7 @@ exports.transferList = async function(request,reply) {
 }
 
 exports.tradeList = async function(request,reply) { 
-    // console.log('request is ',request); 
+    // // console.log('request is ',request); 
     var where = {};
     if (request.payload.where) {
         where = request.payload.where;
@@ -414,7 +539,7 @@ exports.tradeList = async function(request,reply) {
 }
 
 exports.stealList = async function(request,reply) { 
-    // console.log('request is ',request); 
+    // // console.log('request is ',request); 
     var where = {};
     if (request.payload.where) {
         where = request.payload.where;
@@ -432,7 +557,7 @@ exports.stealList = async function(request,reply) {
 }
 
 exports.buyList = async function(request,reply) { 
-    // console.log('request is ',request); 
+    // // console.log('request is ',request); 
     var where = {};
     if (request.payload.where) {
         where = request.payload.where;
@@ -450,7 +575,7 @@ exports.buyList = async function(request,reply) {
 }
 
 exports.awardList = async function(request,reply) { 
-    // console.log('request is ',request); 
+    // // console.log('request is ',request); 
     var where = {};
     if (request.payload.where) {
         where = request.payload.where;
@@ -466,13 +591,23 @@ exports.awardList = async function(request,reply) {
     var sum = await dao.findCount(request,'awardRecord',where);
     reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList,"sum":sum,"total":total});
 }
+// exports.updateAnimalTags = async function(request,reply) {  
+//     var systemSet = await dao.findOne(request,'systemSet',{});
+//     await dao.updateOne(request,'animalQuality',{id:1},{name:systemSet.tag1Name});
+//     await dao.updateOne(request,'animalQuality',{id:2},{name:systemSet.tag1Name});
+//     await dao.updateOne(request,'animalQuality',{id:3},{name:systemSet.tag1Name});
+//     await dao.updateOne(request,'animalQuality',{id:4},{name:systemSet.tag1Name});
+//     await dao.updateOne(request,'animalQuality',{id:5},{name:systemSet.tag1Name});
+//     await dao.updateOne(request,'animalQuality',{id:6},{name:systemSet.tag1Name});
+//     await dao.updateOne(request,'animalQuality',{id:7},{name:systemSet.tag1Name});
+// }
 exports.adminRechargeList = async function(request,reply) { 
-    // console.log('request is ',request); 
+    // // console.log('request is ',request); 
     var where = {};
     if (request.payload.where) {
         where = request.payload.where;
     }
-    // console.log(request.payload.where);
+    // // console.log(request.payload.where);
     var groupSum = await dao.findSum(request,'adminRecharge',{$match:where},{$group:{_id:null,sum:{$sum:"$gold"}}});
     // var buyRecords = {};
     var total = 0;
@@ -495,8 +630,23 @@ exports.plantList = async function(request,reply) {
     var sum = await dao.findCount(request,'plant',where);
     reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList,"sum":sum});
 }
+
+exports.animalList = async function(request,reply) { 
+    var where = {};
+    if (request.payload.where) {
+        where = request.payload.where;
+    }
+    var withdrawalList = await dao.find(request,'animal',where,{},{createTime:-1},request.params.size,request.params.page);
+    
+    var sum = await dao.findCount(request,'animal',where);
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList,"sum":sum});
+}
 exports.plantDetail= async function(request,reply) { 
     var plant = await dao.findById(request,'plant',request.params.id);
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":plant});
+}
+exports.animalDetail= async function(request,reply) { 
+    var plant = await dao.findById(request,'animal',request.params.id);
     reply({"message":"查询成功","statusCode":107,"status":true,"resource":plant});
 }
 exports.putPlant = async function(request,reply) { 
@@ -506,6 +656,7 @@ exports.putPlant = async function(request,reply) {
         reply({"message":"查询失败","statusCode":102,"status":false,"resource":plant});
         return ;
     }
+   
    if (request.payload.animationId >= settings.plantBotId && request.payload.animationId <= settings.plantTopId) {
        if (request.payload.animationId != plant.animationId) {
            reply({"message":"基本植物的动效不能更改！","statusCode":102,"status":false,"resource":plant});
@@ -518,7 +669,7 @@ exports.putPlant = async function(request,reply) {
         return ;
     }
     request.payload.qualityName = tag.name;
-    console.log('req payload',request.payload);
+    // console.log('req payload',request.payload)
     var sortFlagPlant = await dao.findOne(request,'plant',{sortFlag:request.payload.sortFlag});
     if (sortFlagPlant && sortFlagPlant._id + "" != request.params.id) {
         reply({"message":"解锁顺序请不要重复！","statusCode":102,"status":false});
@@ -558,8 +709,8 @@ exports.putPlant = async function(request,reply) {
         return ;
     }
    
-    console.log('req.animationId',request.payload.animationId);
-    console.log('animationPlant',animationPlant);
+    // console.log('req.animationId',request.payload.animationId);
+    // console.log('animationPlant',animationPlant);
     request.payload.animationName = animationPlant.animationName;
     request.payload.animationId = animationPlant.animationId;
 
@@ -576,6 +727,85 @@ exports.putPlant = async function(request,reply) {
 
     reply({"message":"更新成功！","statusCode":101,"status":true,"resource":plant});
 }
+
+exports.putAnimal = async function(request,reply) { 
+    var plant = await dao.findById(request,'animal',request.params.id);
+    var oldTag = plant.qualityId;
+    if (plant == null) {
+        reply({"message":"查询失败","statusCode":102,"status":false,"resource":plant});
+        return ;
+    }
+   if (request.payload.animationId >= settings.animalBotId && request.payload.animationId <= settings.animalTopId) {
+       if (request.payload.animationId != plant.animationId) {
+           reply({"message":"基本动物的动效不能更改！","statusCode":102,"status":false,"resource":plant});
+           return ;
+       }
+   }
+    var tag = await dao.findOne(request,'animalQuality',{id:request.payload.qualityId});
+    if (!tag) {
+        reply({"message":"无此标签","statusCode":102,"status":false});
+        return ;
+    }
+    request.payload.qualityName = tag.name;
+    // console.log('req payload',request.payload);
+    var sortFlagPlant = await dao.findOne(request,'animal',{sortFlag:request.payload.sortFlag});
+    if (sortFlagPlant && sortFlagPlant._id + "" != request.params.id) {
+        reply({"message":"解锁顺序请不要重复！","statusCode":102,"status":false});
+        return ;
+    }
+    if (request.payload.sortFlag <= 0) {
+        reply({"message":"解锁顺序请输入大于0的整数！","statusCode":102,"status":false});
+        return ;
+    }
+    
+    if (request.payload.sortFlag % 1 != 0 ) {
+        reply({"message":"请输入整数！","statusCode":102,"status":false});
+        return ;
+    }
+    if (request.payload.sortFlag > 1) {
+        var preSortFlag = request.payload.sortFlag - 1;
+        var sortFlagPlant = await dao.findOne(request,'animal',{sortFlag:preSortFlag});
+        if (!sortFlagPlant) {
+            reply({"message":"请保证解锁顺序连续！","statusCode":102,"status":false});
+            return ;
+        }
+    }
+
+    if (request.payload.unlockTime <= 0 ) {
+        request.payload.free = 1;
+    } else {
+        request.payload.free = 0;
+         if (request.payload.everyPrice <= 0) {
+            reply({"message":"请填写正确的解锁价格！","statusCode":102,"status":false});
+            return ;
+        }
+    }
+
+    var animationPlant = await dao.findOne(request,'animal',{id:request.payload.animationId});
+    if (!animationPlant) {
+        reply({"message":"无此动效！","statusCode":102,"status":false});
+        return ;
+    }
+   
+    // console.log('req.animationId',request.payload.animationId);
+    // console.log('animationPlant',animationPlant);
+    request.payload.animationName = animationPlant.animationName;
+    request.payload.animationId = animationPlant.animationId;
+
+    await dao.updateOne(request,'animal',{_id:request.params.id},request.payload);
+    // if (request.payload.qualityId) {
+        await dao.updateOne(request,'animalQuality',{id:request.payload.qualityId},{hasSeed:1});
+    // }
+    var oldTagPlants = await dao.find(request,'animal',{qualityId:oldTag});
+    if (oldTagPlants.length <= 0) {
+        await dao.updateOne(request,'animalQuality',{id:oldTag},{hasSeed:0});
+    }
+
+    
+
+    reply({"message":"更新成功！","statusCode":101,"status":true,"resource":plant});
+}
+
 exports.addPlant = async function(request,reply) { 
     var plant = request.payload;
     var tag = await dao.findOne(request,'plantQuality',{id:request.payload.qualityId});
@@ -623,8 +853,12 @@ exports.addPlant = async function(request,reply) {
     }
     
     var plants = await dao.find(request,'plant',{},{},{id:-1});
-    var lastPlant = plants[0];
-    plant.id = Number(Number(lastPlant.id) + 1);
+    if (plants.length <= 0) {
+        plant.id = 1000;
+    } else {
+        var lastPlant = plants[0];
+        plant.id = Number(Number(lastPlant.id) + 1);
+    }
     plant.createTime = new Date().getTime();
     // plant.sortFlag = lastPlant.id + 1;
     plant.qualityName = tag.name;
@@ -632,6 +866,69 @@ exports.addPlant = async function(request,reply) {
     plant.animationId = animationPlant.animationId;
     await dao.save(request,'plant',plant);
     await dao.updateOne(request,'plantQuality',{id:request.payload.qualityId},{hasSeed:1});
+    reply({"message":"添加成功","statusCode":101,"status":true,"resource":plant});
+}
+
+exports.addAnimal = async function(request,reply) { 
+    var plant = request.payload;
+    var tag = await dao.findOne(request,'animalQuality',{id:request.payload.qualityId});
+    if (!tag) {
+        reply({"message":"无此标签","statusCode":102,"status":false});
+        return ;
+    }
+    var sortFlagPlant = await dao.findOne(request,'animal',{sortFlag:request.payload.sortFlag});
+    if (sortFlagPlant) {
+        reply({"message":"解锁顺序请不要重复！","statusCode":102,"status":false});
+        return ;
+    }
+    if (request.payload.sortFlag <= 0) {
+        reply({"message":"解锁顺序请输入大于0的整数！","statusCode":102,"status":false});
+        return ;
+    }
+    
+    if (request.payload.sortFlag % 1 != 0 ) {
+        reply({"message":"请输入整数！","statusCode":102,"status":false});
+        return ;
+    }
+    if (request.payload.sortFlag > 1) {
+        var preSortFlag = request.payload.sortFlag - 1;
+        var sortFlagPlant = await dao.findOne(request,'animal',{sortFlag:preSortFlag});
+        if (!sortFlagPlant) {
+            reply({"message":"请保证解锁顺序连续！","statusCode":102,"status":false});
+            return ;
+        }
+    }
+
+    if (plant.unlockTime <= 0 ) {
+        plant.free = 1;
+    } else {
+        plant.free = 0;
+        if (plant.everyPrice <= 0) {
+            reply({"message":"请填写正确的解锁价格！","statusCode":102,"status":false});
+            return ;
+        }
+    }
+
+    var animationPlant = await dao.findOne(request,'animal',{id:plant.animationId});
+    if (!animationPlant) {
+        reply({"message":"无此动效！","statusCode":102,"status":false});
+        return ;
+    }
+    
+    var plants = await dao.find(request,'animal',{},{},{id:-1});
+     if (plants.length <= 0) {
+        plant.id = 1000;
+    } else {
+        var lastPlant = plants[0];
+        plant.id = Number(Number(lastPlant.id) + 1);
+    }
+    plant.createTime = new Date().getTime();
+    // plant.sortFlag = lastPlant.id + 1;
+    plant.qualityName = tag.name;
+    plant.animationName = animationPlant.animationName;
+    plant.animationId = animationPlant.animationId;
+    await dao.save(request,'animal',plant);
+    await dao.updateOne(request,'animalQuality',{id:request.payload.qualityId},{hasSeed:1});
     reply({"message":"添加成功","statusCode":101,"status":true,"resource":plant});
 }
 
@@ -645,6 +942,22 @@ exports.delPlant = async function(request,reply) {
     var plants = await dao.find(request,'plant',{qualityId:prop.qualityId});
     if (plants.length <= 0) {
         await dao.updateOne(request,'plantQuality',{id:prop.qualityId},{hasSeed:0});
+    }
+
+    reply({"message":"删除成功！","statusCode":101,"status":true});
+
+}
+
+exports.delAnimal = async function(request,reply) { 
+    var prop = await dao.findById(request,'animal',request.params.id);
+    if (!prop) {
+        reply({"message":"动物不存在！","statusCode":102,"status":false});
+        return;
+    }
+    await dao.del(request,'animal',{_id:request.params.id + ""});
+    var plants = await dao.find(request,'animal',{qualityId:prop.qualityId});
+    if (plants.length <= 0) {
+        await dao.updateOne(request,'animalQuality',{id:prop.qualityId},{hasSeed:0});
     }
 
     reply({"message":"删除成功！","statusCode":101,"status":true});
@@ -691,7 +1004,11 @@ exports.tags = async function(request,reply) {
     var tags = await dao.find(request,'plantQuality',{},{},{id:1});
      reply({"message":"查询成功","statusCode":107,"status":true,"resource":tags});
 }
-
+// 品质等级
+exports.animalTags = async function(request,reply) {  
+    var tags = await dao.find(request,'animalQuality',{},{},{id:1});
+     reply({"message":"查询成功","statusCode":107,"status":true,"resource":tags});
+}
 exports.grows = async function(request,reply) { 
     var where = {};
     if (request.payload.where) {
@@ -723,8 +1040,12 @@ exports.addGrow = async function(request,reply) {
         return ;
     }
     var plants = await dao.find(request,'settingUserGrow',{},{},{id:-1});
-    var lastPlant = plants[0];
-    plant.id = Number(Number(lastPlant.id) + 1);
+    if (plants.length <= 0) {
+        plant.id = 1000;
+    } else {
+        var lastPlant = plants[0];
+        plant.id = Number(Number(lastPlant.id) + 1);
+    }
     // var tag = await dao.findOne(request,'',);
     await dao.save(request,'settingUserGrow',plant);
     reply({"message":"添加成功","statusCode":107,"status":true,"resource":plant});
@@ -742,6 +1063,80 @@ exports.delGrow = async function(request,reply) {
 }
 
 
+
+exports.petGrows = async function(request,reply) { 
+    var where = {};
+    if (request.payload.where) {
+        where = request.payload.where;
+    }
+    var withdrawalList = await dao.find(request,'settingPetGrow',where,{},{createTime:-1},request.params.size,request.params.page);
+    
+    var sum = await dao.findCount(request,'settingPetGrow',where);
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList,"sum":sum});
+}
+exports.petGrowDetail= async function(request,reply) { 
+    var plant = await dao.findById(request,'settingPetGrow',request.params.id);
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":plant});
+}
+exports.putPetGrow = async function(request,reply) { 
+    var plant = await dao.findById(request,'settingPetGrow',request.params.id);
+    if (plant == null) {
+        reply({"message":"无此记录！","statusCode":102,"status":true});
+        return ;
+    }
+    await dao.updateOne(request,'settingPetGrow',{_id:request.params.id},request.payload);
+    reply({"message":"更新成功","statusCode":101,"status":true,"resource":plant});
+}
+exports.addPetGrow = async function(request,reply) { 
+    var plant = request.payload;
+    var classGrow = await dao.findOne(request,'settingPetGrow',{class:request.payload.class});
+    if (classGrow) {
+        reply({"message":"该等级成长参数已配置过！","statusCode":102,"status":false});
+        return ;
+    }
+    var plants = await dao.find(request,'settingPetGrow',{},{},{id:-1});
+    if (plants.length <= 0) {
+        plant.id = 1000;
+    } else {
+        var lastPlant = plants[0];
+        plant.id = Number(Number(lastPlant.id) + 1);
+    }
+    if (plant.needPropA != -1 && plant.needPropA != 0 && plant.needACount > 0) {
+        var prop = await dao.findOne(request,'prop',{id:plant.needPropA});
+        if (!prop) {
+            reply({"message":"请填写正确的道具ID，无须道具请填写-1","statusCode":108,"status":false,"resource":plant});
+            return;
+        }
+    } 
+    if (plant.needPropB != -1 && plant.needPropB != 0 && plant.needBCount > 0) {
+        var prop = await dao.findOne(request,'prop',{id:plant.needBCount});
+        if (!prop) {
+            reply({"message":"请填写正确的道具ID，无须道具请填写-1","statusCode":108,"status":false,"resource":plant});
+            return;
+        }
+    } 
+     if (plant.nexClassNeedProp != -1 && plant.nexClassNeedProp != 0 && plant.nexClassNeedCount > 0) {
+        var prop = await dao.findOne(request,'prop',{id:plant.nexClassNeedProp});
+        if (!prop) {
+            reply({"message":"请填写正确的道具ID，无须道具请填写-1","statusCode":108,"status":false,"resource":plant});
+            return;
+        }
+    }
+    // var tag = await dao.findOne(request,'',);
+    await dao.save(request,'settingPetGrow',plant);
+    reply({"message":"添加成功","statusCode":107,"status":true,"resource":plant});
+}
+
+exports.delPetGrow = async function(request,reply) { 
+    var prop = await dao.findById(request,'settingPetGrow',request.params.id);
+    if (!prop) {
+        reply({"message":"数据不存在！","statusCode":102,"status":false});
+        return;
+    }
+    await dao.del(request,'settingPetGrow',{_id:request.params.id + ""});
+    reply({"message":"删除成功！","statusCode":101,"status":true});
+
+}
 
 
 exports.farmUlkSettings = async function(request,reply) { 
@@ -806,10 +1201,13 @@ exports.putProp = async function(request,reply) {
 exports.addProp = async function(request,reply) { 
     var plant = request.payload;
     var plants = await dao.find(request,'prop',{},{},{id:-1});
-    var lastPlant = plants[0];
-    // console.log('plants',plants);
-    // console.log('lastPlant',lastPlant);
-    plant.id = Number(Number(lastPlant.id) + 1);
+
+    if (plants.length <= 0) {
+        plant.id = 1000;
+    } else {
+        var lastPlant = plants[0];
+        plant.id = Number(Number(lastPlant.id) + 1);
+    }
     plant.func_id = 1004;
     plant.type = 1;
     plant.sendStrCount = 0;
@@ -828,6 +1226,107 @@ exports.deleteProp = async function(request,reply) {
 
 }
 
+
+exports.works = async function(request,reply) { 
+    var where = {};
+
+    var withdrawalList = await dao.find(request,'workArea',where,{},{createTime:-1},request.params.size,request.params.page);
+    
+    var sum = await dao.findCount(request,'workArea',{});
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList,"sum":sum});
+}
+
+exports.workDetail= async function(request,reply) { 
+    var plant = await dao.findById(request,'workArea',request.params.id);
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":plant});
+}
+exports.putWork = async function(request,reply) { 
+    var plant = await dao.findById(request,'workArea',request.params.id);
+    if (plant == null) {
+        reply({"message":"无此记录","statusCode":102,"status":false});
+        return ;
+    }
+    await dao.updateOne(request,'workArea',{_id:request.params.id},request.payload);
+    // payload
+    // name:Joi.string().description('道具名称'),
+    // img:Joi.string().description('道具ID'),
+    // use:Joi.string().description("用途"),
+    // des:Joi.string().description("描述"),
+    // soldPrice:Joi.number().description("出售价格")
+    // 道具到仓库
+    reply({"message":"更新成功！","statusCode":101,"status":true,"resource":plant});
+}
+
+
+exports.rewards = async function(request,reply) { 
+    var where = {};
+
+    var withdrawalList = await dao.find(request,'wheelRewards',where,{},{createTime:-1},request.params.size,request.params.page);
+    var sum = await dao.findCount(request,'wheelRewards',{});
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList,"sum":sum});
+}
+
+exports.rewardDetail= async function(request,reply) { 
+    var plant = await dao.findById(request,'wheelRewards',request.params.id);
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":plant});
+}
+exports.putRewards = async function(request,reply) { 
+    var plant = await dao.findById(request,'wheelRewards',request.params.id);
+    if (plant == null) {
+        reply({"message":"无此记录","statusCode":102,"status":false});
+        return ;
+    }
+
+   if (request.payload.type == 7) {
+        if (request.payload.propId && request.payload.propId != -1) {
+            var prop = await dao.findOne(request,'prop',{id:request.payload.propId});
+            if (!prop) {
+                reply({"message":"道具不存在！","statusCode":102,"status":false});
+                return ;
+            }
+            request.payload.propName = prop.name;
+            request.payload.propImg = prop.img;
+            request.payload.prop_id = prop._id + "";
+        }
+   }
+    await dao.updateOne(request,'wheelRewards',{_id:request.params.id},request.payload);
+    // type 1 经验 2 精华 3 金币 4 红包 5 体力 6 钻石 7 道具 8 谢谢参与
+    // name:Joi.string().description('道具名称'),
+    // img:Joi.string().description('道具ID'),
+    // use:Joi.string().description("用途"),
+    // des:Joi.string().description("描述"),
+    // soldPrice:Joi.number().description("出售价格")
+    // 道具到仓库
+    reply({"message":"更新成功！","statusCode":101,"status":true,"resource":plant});
+}
+exports.shares = async function(request,reply) { 
+    var where = {};
+    var withdrawalList = await dao.find(request,'shareSettings',where,{},{createTime:-1},request.params.size,request.params.page);
+    var sum = await dao.findCount(request,'shareSettings',{});
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList,"sum":sum});
+}
+
+exports.shareDetail = async function(request,reply) { 
+    var plant = await dao.findById(request,'shareSettings',request.params.id);
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":plant});
+}
+exports.putShare = async function(request,reply) { 
+    var plant = await dao.findById(request,'shareSettings',request.params.id);
+    if (plant == null) {
+        reply({"message":"无此记录","statusCode":102,"status":false});
+        return ;
+    }
+    // console.log('shareSettings',request.payload);
+    await dao.updateOne(request,'shareSettings',{_id:request.params.id},request.payload);
+    // type 1 经验 2 精华 3 金币 4 红包 5 体力 6 钻石 7 道具 8 谢谢参与
+    // name:Joi.string().description('道具名称'),
+    // img:Joi.string().description('道具ID'),
+    // use:Joi.string().description("用途"),
+    // des:Joi.string().description("描述"),
+    // soldPrice:Joi.number().description("出售价格")
+    // 道具到仓库
+    reply({"message":"更新成功！","statusCode":101,"status":true,"resource":plant});
+}
 exports.deleteDrop = async function(request,reply) { 
     var prop = await dao.findById(request,'dropGroups',request.params.id);
     if (!prop) {
@@ -835,11 +1334,10 @@ exports.deleteDrop = async function(request,reply) {
         return;
     }
     await dao.del(request,'dropGroups',{_id:request.params.id + ""});
-    console.log('req params',request.params);
+    // console.log('req params',request.params);
     reply({"message":"删除成功！","statusCode":101,"status":true});
 
 }
-
 exports.goodsList = async function(request,reply) { 
     var where = {};
     if (request.payload.where) {
@@ -882,13 +1380,17 @@ exports.addGoods = async function(request,reply) {
     var plant = request.payload;
     // var tag = await dao.findOne(request,'',);
     var plants = await dao.find(request,'exgoods',{},{},{id:-1});
-    var lastPlant = plants[0];
-    plant.id = Number(Number(lastPlant.id) + 1);
+     if (plants.length <= 0) {
+        plant.id = 1000;
+    } else {
+        var lastPlant = plants[0];
+        plant.id = Number(Number(lastPlant.id) + 1);
+    }
 
     var props = await dao.find(request,'prop',{},{},{id:-1});
-    console.log('props',props);
+    // console.log('props',props);
     var lastProp = props[0];
-    console.log('lastProp',lastProp);
+    // console.log('lastProp',lastProp);
     plant.propId = Number(Number(lastProp.id) + 1);
 
     await dao.save(request,'exgoods',plant);
@@ -918,17 +1420,41 @@ exports.deleteGoods = async function(request,reply) {
     // var produce = await dao.find(request,'produce',{goods_id:request.params.id});
     await dao.del(request,'exgoods',{_id:request.params.id + ""});
     await dao.delSum(request,'produce',{goods_id:request.params.id});
-    console.log('req params',request.params);
+    // console.log('req params',request.params);
     reply({"message":"删除成功！","statusCode":101,"status":true});
 
 }
 exports.landUlcS = async function(request,reply) { 
    
-    var withdrawalList = await dao.find(request,'landUlcCdts',{},{},{landCode:1});
+    var withdrawalList = await dao.find(request,'landUlcCdts',{},{},{landCode:1},request.params.size,request.params.page);
+    var sum = await dao.findCount(request,'landUlcCdts',{});
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList,sum:sum});
+}
+exports.farmUlcS = async function(request,reply) { 
+   
+    var withdrawalList = await dao.find(request,'farmUlcCdts',{},{},{landCode:1},request.params.size,request.params.page);
+    var sum = await dao.findCount(request,'farmUlcCdts',{});
     reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList});
 }
+
+exports.players = async function(request,reply) { 
+   
+    var withdrawalList = await dao.find(request,'playerSetting',{},{},{id:1},request.params.size,request.params.page);
+    var sum = await dao.findCount(request,'playerSetting',{});
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList,sum:sum});
+}
+
 exports.ulcDetail = async function(request,reply) { 
     var plant = await dao.findById(request,'landUlcCdts',request.params.id);
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":plant});
+}
+exports.farmUlcDetail = async function(request,reply) { 
+    var plant = await dao.findById(request,'farmUlcCdts',request.params.id);
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":plant});
+}
+
+exports.playerDetail = async function(request,reply) { 
+    var plant = await dao.findById(request,'playerSetting',request.params.id);
     reply({"message":"查询成功","statusCode":107,"status":true,"resource":plant});
 }
 exports.putUlc = async function(request,reply) { 
@@ -941,10 +1467,29 @@ exports.putUlc = async function(request,reply) {
     reply({"message":"更新成功！","statusCode":101,"status":true,"resource":plant});
 }
 
+exports.putFarmUlc = async function(request,reply) { 
+    var plant = await dao.findById(request,'farmUlcCdts',request.params.id);
+    if (plant == null) {
+        reply({"message":"未找到记录","statusCode":102,"status":false});
+        return ;
+    }
+    await dao.updateOne(request,'farmUlcCdts',{_id:request.params.id},request.payload);
+    reply({"message":"更新成功！","statusCode":101,"status":true,"resource":plant});
+}
+
+exports.putPlayer = async function(request,reply) { 
+    var plant = await dao.findById(request,'playerSetting',request.params.id);
+    if (plant == null) {
+        reply({"message":"未找到记录","statusCode":102,"status":false});
+        return ;
+    }
+    await dao.updateOne(request,'playerSetting',{_id:request.params.id},request.payload);
+    reply({"message":"更新成功！","statusCode":101,"status":true});
+}
 
 exports.addNotes = async function(request,reply){ 
     var note = {};
-    console.log('res addNotes');
+    // console.log('res addNotes');
     note.title = request.payload.title;
     note.content = request.payload.content;
     note.createTime = new Date().getTime();
@@ -994,7 +1539,7 @@ exports.Login = async function(request,reply){
         }
     }
     var lands = await dao.find(request,'land',{status:{$gt:1}});
-    
+    // await petService.addAllDogs(request);
     reply({"message":"用户登陆成功","statusCode":107,"status":true,"resource":request.auth.credentials});
 }
 
@@ -1004,11 +1549,11 @@ exports.addAdmin = async function(request,reply){
     var admin = request.payload;
     // admin.roleName = "管理员";
     admin.createTime = new Date().getTime();
-    console.log('payload',request.payload);
-     console.log('payload roleId',request.payload.roleId);
+    // console.log('payload',request.payload);
+     // console.log('payload roleId',request.payload.roleId);
      if (request.payload.roleId) {
         var role = await dao.findById(request,'role',request.payload.roleId);
-        console.log('payload');
+        // console.log('payload');
         if (role == null) {
              reply({"message":"权限信息不存在","statusCode":102,"status":false});
              return;
@@ -1049,11 +1594,11 @@ exports.getAdminList = async function(request,reply){
 //更新管理员
 exports.updateAdmin = async function(request,reply){
     var admin = request.payload;
-    console.log(admin);
+    // console.log(admin);
     if(admin.password){
         admin.password = CryptoJS.AES.encrypt(admin.password,"AiMaGoo2016!@.")+"";
     }
-    console.log(admin);
+    // console.log(admin);
     if (request.payload.roleId) {
         var role = await dao.findById(request,'role',request.payload.roleId);
         if (role == null) {
@@ -1062,7 +1607,7 @@ exports.updateAdmin = async function(request,reply){
         admin.scope = role.scope;
         admin.roleLevel = role.level;
     }
-    console.log(admin);
+    // console.log(admin);
     var result = await dao.updateOne(request,"admin",{"_id":request.params.id},admin);
 
     if(result==null){
@@ -1087,6 +1632,30 @@ exports.delAdmin = async function(request,reply){
         reply({"message":"删除管理员成功","statusCode":103,"status":true});
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // 财务管理
 // 购买记录
@@ -1252,12 +1821,12 @@ exports.noteDetail = async function(request,reply) {
 // var number = 0;
 exports.bianli2 = async function(request,reply){
     var list = await dao.find(request,"user",{});
-    //console.log(list);
+    //// console.log(list);
     for(let i =0;i<list.length;i++){
         var number = 0;
         var data = await dedai2(list[i],request,number,0,0);
         var user = list[i];
-        console.log('user:'+ user.username + ",+team_num:" + data.number + "team_recharge_sum"+ data.rechargeSum + "team_withdraw_sum" + data.withdrawSum);
+        // console.log('user:'+ user.username + ",+team_num:" + data.number + "team_recharge_sum"+ data.rechargeSum + "team_withdraw_sum" + data.withdrawSum);
         await dao.updateOne(request,"user",{_id:list[i]._id+""},{teamNumber:data.number,team_recharge_sum:data.rechargeSum,team_withdraw_sum:data.withdrawSum});
     };
     reply({"message":"成功","statusCode":103,"status":true});
@@ -1279,7 +1848,7 @@ async function dedai2(parent,request,number,rechargeSum,withdrawSum){
 var number = 0;
 exports.bianli3 = async function(request,reply){
     var list = await dao.find(request,"user",{});
-    //console.log(list);
+    //// console.log(list);
     for(let i =0;i<list.length;i++){
         number = 0;
         await dedai2(list[i],request);
@@ -1348,7 +1917,7 @@ exports.dashBoard = async function(request,reply){
     dash.goldSum = gold;     // 金币总数
     dash.pltSum = plt;  // 精华总数
     dash.dimondSum = dimond;  // 钻石总数
-    console.log('---- dash',dash);
+    // console.log('---- dash',dash);
     reply({"message":"查询成功","statusCode":107,"status":true,"resource":dash}); 
 }
 
@@ -1356,7 +1925,7 @@ exports.dashBoard = async function(request,reply){
 async function weekAddUser(request){
     //查询倒叙
     var users = await dao.find(request,"userRecord",{},{},{dateTime:-1},11,1);
-    console.log(users);
+    // console.log(users);
     return users;
 }
 async function dedai3(parent,request){

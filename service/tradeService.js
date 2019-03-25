@@ -33,9 +33,9 @@ exports.commitSale = async function(request,reply){
         return ;
      }
     var serverpay_password = user.pay_password;
-    console.log('serverpay_password is',serverpay_password);
+    // console.log('serverpay_password is',serverpay_password);
      var decrptpay_password = CryptoJS.AES.decrypt(serverpay_password,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8);
-     console.log('decrptpay_password is',decrptpay_password);
+     // console.log('decrptpay_password is',decrptpay_password);
     if (decrptpay_password != request.payload.pay_password) {
         reply({
                 "message":"支付密码错误",
@@ -92,7 +92,7 @@ exports.saleList = async function(request,reply){
 }
 
 exports.buySale = async function(request,reply){  
-    // console.log('id is ',request.params.id);
+    // // console.log('id is ',request.params.id);
     var user = request.auth.credentials;
     var sale = await dao.findById(request,'sale',request.params.id + "");
     if (sale == null) {
@@ -113,9 +113,9 @@ exports.buySale = async function(request,reply){
          return;
     }
     var serverpay_password = user.pay_password;
-    // console.log('serverpay_password is',serverpay_password);
+    // // console.log('serverpay_password is',serverpay_password);
     var decrptpay_password = CryptoJS.AES.decrypt(serverpay_password,"AiMaGoo2016!@.").toString(CryptoJS.enc.Utf8);
-    // console.log('decrptpay_password is',decrptpay_password);
+    // // console.log('decrptpay_password is',decrptpay_password);
     if (decrptpay_password != request.payload.pay_password) {
         reply({
                 "message":"支付密码错误",
@@ -245,7 +245,7 @@ exports.cancelBuy = async function(request,reply){
 
 exports.cancelSale = async function(request,reply){ 
     var sale = await dao.findById(request,'sale',request.params.id + "");
-    console.log('req payload is',request.payload);
+    // console.log('req payload is',request.payload);
     if (sale == null) {
         reply({
             "message":"无此出售记录",
@@ -283,7 +283,7 @@ exports.cancelSale = async function(request,reply){
 exports.myOrders = async function(request,reply){ 
     var user = request.auth.credentials;
     var orders;
-    console.log('type',request.payload.type);
+    // console.log('type',request.payload.type);
     if (request.payload.type == 1) {
         orders = await dao.find(request,'sale',{username:user.username},{},{createTime:-1},request.params.size,request.params.page);
     } else {
@@ -457,7 +457,7 @@ exports.saleTransferPay = async function(request,reply){
 exports.myTransfers = async function(request,reply){  
     var user = request.auth.credentials;
     var orders;
-    console.log('request type is ',request.payload.type);
+    // console.log('request type is ',request.payload.type);
     if (request.payload.type == 1) {
         orders = await dao.find(request,'transfer',{username:user.username},{},{createTime:-1},request.params.size,request.params.page);
     } else {

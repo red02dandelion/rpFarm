@@ -1,325 +1,326 @@
 const Joi = require('joi');
-const goodsService = require('../service/goodsService');
-
-  // 用户登录
-module.exports = [
-
-     // 种子列表
-    {
-        method:'GET',
-        path:'/goods/seeds',
-        handler:goodsService.seeds,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '种子列表',
-            notes: '种子列表Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
-            }
-        }
-    },
-
-      // 道具列表
-    {
-        method:'GET',
-        path:'/goods/props',
-        handler:goodsService.props,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '道具列表',
-            notes: '道具列表Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
-            }
-        }
-    },
-
-       // 宠物列表
-    {
-        method:'GET',
-        path:'/goods/dogs',
-        handler:goodsService.dogs,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '宠物列表',
-            notes: '宠物列表Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
-            }
-        }
-    },
-
-    // 房屋列表
-    {
-        method:'GET',
-        path:'/goods/houses',
-        handler:goodsService.houses,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '房屋列表',
-            notes: '房屋列表Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown()
-            }
-        }
-    },
-
-    // 购买种子
-       {
-        method:'POST',
-        path:'/goods/seed/buy/{id}',
-        handler:goodsService.buySeed,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '购买种子',
-            notes: '购买种子Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                payload: {
-                    count: Joi.number().required().description('购买数量'),
-                    // pay_password:Joi.string().required().description('支付密码')
-                }, 
-                params:{
-                    id:Joi.string().required().description("种子ID")
-                }
-                
-            }
-        }
-    },
-
-      // 购买道具
-       {
-        method:'POST',
-        path:'/goods/prop/buy/{id}',
-        handler:goodsService.buyProp,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '购买道具',
-            notes: '购买道具Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                payload: {
-                    count: Joi.number().required().description('购买数量'),
-                    // pay_password:Joi.string().required().description('支付密码')
-                }, 
-                params:{
-                    id:Joi.string().required().description("种子ID")
-                }
-                
-            }
-        }
-    },
-
-     // 购买宠物
-       {
-        method:'POST',
-        path:'/goods/dog/buy/{id}',
-        handler:goodsService.buyDog,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '购买宠物',
-            notes: '购买宠物Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                params:{
-                    id:Joi.string().required().description("种子ID")
-                }
-                // payload:{
-                //     pay_password:Joi.string().required().description('支付密码')
-                // }
-            }
-        }
-    },
-        // 购买狗粮
-       {
-        method:'POST',
-        path:'/goods/dogFood/buy',
-        handler:goodsService.buyDogFood,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '购买狗粮',
-            notes: '购买狗粮Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                payload: {
-                    count: Joi.number().required().description('购买数量'),
-                    // pay_password:Joi.string().required().description('支付密码')
-                }
-            }
-        }
-    },
-    // 购买房屋
-       {
-        method:'POST',
-        path:'/goods/house/buy/{id}',
-        handler:goodsService.buyHouse,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '购买房屋',
-            notes: '购买房屋Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                params:{
-                    id:Joi.string().required().description("房屋ID")
-                }
-                // payload:{
-                //     pay_password:Joi.string().required().description('支付密码')
-                // }
-            }
-        }
-    },
-
-
-    // 确认购买成功
-       {
-        method:'POST',
-        path:'/goods/areca/buy',
-        handler:goodsService.buyAreca,
-        config:{
-            //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '购买种子',
-            notes: '购买种子Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                payload: {
-                    count: Joi.number().required().description('购买数量'),
-                    // pay_password:Joi.string().required().description('支付密码')
-                }
-                
-            }
-        }
-    },
-
-    // 申请交易
-    {
-        method:'POST',
-        path:'/goods/buybl',
-        handler:goodsService.buyBL,
-        config:{
-            //拦截器
-              //拦截器
-            auth: {
-                strategy: 'bearer',
-                scope: 'USER'
-            },
-            description: '申请交易',
-            notes: '申请交易Api',
-            //tags: ['api'],
-            validate: {
-                headers: Joi.object({
-                    'authorization': Joi.string().required().description('需要加token请求头')
-                }).unknown(),
-                payload: {
-                    token: Joi.string().required().description('用户Token'),
-                    amount: Joi.string().required().description('花费金额'),
-                    // opCode: Joi.string().required().description('用户USername'),
-                    blnum: Joi.string().required().description('槟榔数量'),
-                    // pay_password:Joi.string().required().description('支付密码')
-                }
-                
-            }
-            
-        }
-    },
-
-     // 确认交易
-    {
-        method:'POST',
-        path:'/goods/qrbuy',
-        handler:goodsService.qrBuy,
-        config:{
-            //拦截器
+const farmService = require('../service/farmService');
+// 系统设置
   
+module.exports = [
+    // 植物标签
+    {
+        method:'GET',
+        path:'/animal/tags',
+        handler:farmService.tags,
+        config:{
+            //拦截器
             auth: {
                 strategy: 'bearer',
                 scope: 'USER'
             },
-            // auth: false,
-            description: '确认交易',
-            notes: '确认交易Api',
+            description: '植物标签列表',
+            notes: '植物标签列表',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown()
+            }
+        }
+    },
+    // 标签下植物
+    {
+        method:'GET',
+        path:'/animal/seed/{id}',
+        handler:farmService.tagPlant,
+        config:{
+            //拦截器
+             
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '某标签下植物列表',
+            notes: '某标签下植物列表',
             //tags: ['api'],
             validate: {
                 headers: Joi.object({
                     'authorization': Joi.string().required().description('需要加token请求头')
                 }).unknown(),
-                payload: {
-                    seq: Joi.string().required().description('交易单号'),
-                    pay_password:Joi.string().required().description('支付密码')
+                params:{
+                    id:Joi.number().description('标签ID')
                 }
-                
             }
-            
+        }
+    },
+    // 解锁植物
+    {
+        method:'GET',
+        path:'/animal/unlock/{id}',
+        handler:farmService.unlockPlant,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '某标签下植物列表',
+            notes: '某标签下植物列表',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().description('植物ID')
+                }
+            }
         }
     },
 
+     // 合成植物
+    {
+        method:'GET', 
+        path:'/animal/cb/{id}',
+        handler:farmService.cbPlant,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '合成植物',
+            notes: '合成植物',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().description('植物ID')
+                }
+            }
+        }
+    },
+       // 合成植物
+    {
+        method:'GET', 
+        path:'/animal/land/dimond/{id}',
+        handler:farmService.unlockLandWithDimond,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '合成植物',
+            notes: '合成植物',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().description('土地ID')
+                }
+            }
+        }
+    },
+    // 种植
+    {
+        method:'POST',
+        path:'/animal/{code}',
+        handler:farmService.plant,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '种植植物',
+            notes: '种植植物Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    code:Joi.number().description('土地编号 传0则自动选择可种植的土地')
+                },
+                payload:{
+                    id:Joi.string().description('种子ID')
+                }
+            }
+        }
+    },
+
+    // 解锁植物
+    {
+        method:'GET',
+        path:'/animal/userDetail/{id}',
+        handler:farmService.userPlantDetail,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '植物详情',
+            notes: '植物详情',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().description('植物ID')
+                }
+            }
+        }
+    },
+  
+     // 收获预览
+    {
+        method:'GET',
+        path:'/animal/harvestPreview/{id}',
+        handler:farmService.harvestPreview,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '收获预览',
+            notes: '收获预览',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().description('土地ID')
+                }
+            }
+        }
+    },
+    // 收获
+    {
+        method:'GET',
+        path:'/animal/harvest/{id}',
+        handler:farmService.harvest,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '收获单个土地',
+            notes: '收获单个土地Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().description('要收取的土地ID')
+                }
+            }
+        }
+    },
+    // 一键收获
+    {
+        method:'POST',
+        path:'/animal/oneKeyHarvest',
+        handler:farmService.onekeyHarvest,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '一键收获',
+            notes: '一键收获',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    lands:Joi.array().description('土地IDS')
+                }
+            }
+        }
+    },
+
+    // 一键收获预览
+    {
+        method:'POST',
+        path:'/animal/totalHarvest',
+        handler:farmService.totalHarvestPreview,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '收获预览',
+            notes: '收获预览',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    lands:Joi.array().description('土地IDS')
+                }
+            }
+        }
+    },
+
+
+
+        // 偷红包
+    {
+        method:'POST',
+        path:'/animal/plt/steal/{id}',
+        handler:farmService.plt_steal,
+        config:{
+            //拦截器
+            auth: {
+                strategy: 'bearer',
+                scope: 'USER'
+            },
+            description: '偷取',
+            notes: '偷取Api',
+            //tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                     id:Joi.string().required().description("土地ID")
+                }
+            }
+        }
+    },
+    // // 分享解锁土地
+    //  {
+    //     method:'GET',
+    //     path:'/animal/land/share/{id}',
+    //     handler:farmService.plt_steal,
+    //     config:{
+    //         //拦截器
+    //         auth: {
+    //             strategy: 'bearer',
+    //             scope: 'USER'
+    //         },
+    //         description: '偷取',
+    //         notes: '偷取Api',
+    //         //tags: ['api'],
+    //         validate: {
+    //             headers: Joi.object({
+    //                 'authorization': Joi.string().required().description('需要加token请求头')
+    //             }).unknown(),
+    //             params:{
+    //                  id:Joi.string().required().description("土地ID")
+    //             }
+    //         }
+    //     }
+    // },
 ]

@@ -2,6 +2,8 @@ const dao = require("../dao/dao");
 var settings = require('../settings.js');
 const workShopService = require("../service/workShopService");
 exports.overView = async function(request,reply) { 
+    var start = new Date().getTime();
+    // console.log('1111start---',start);
     var user = request.auth.credentials;
     var displayGoods;
     var displayGoodsArr = [];
@@ -34,16 +36,17 @@ exports.overView = async function(request,reply) {
         displayGoods.status = 0;
         displayGoods.inProduce = 0; 
     }
-    console.log('displayGoods',displayGoods);
+     // console.log('displayGoods',displayGoods)
     if (displayGoods) {
         displayGoodsArr = [displayGoods];
     }
-    console.log('displayGoodsArr',displayGoodsArr);
     var bhdGoods = await workShopService.removeGoods(request,goods,displayGoods._id + "");
-    console.log('bhdGoods',bhdGoods);
+     // console.log('displayGoods',displayGoods)
     goodsArr = displayGoodsArr.concat(bhdGoods);
-    console.log('goodsArr',goodsArr);
+     // console.log('displayGoods',displayGoods)
     await workShopService.goodsArrPropFeeAdd(request,goodsArr);
+     // console.log('displayGoods',displayGoods)
+    // console.log('22222',new Date().getTime() - start);
     reply({
         "message":"查询成功!",
         "statusCode":101,
@@ -153,7 +156,7 @@ exports.harvestProduce = async function(request,reply) {
     var prop_id = prop._id + "";
     var propId = prop.id; 
     var propInHouse = await dao.findOne(request,'warahouse',{prop_id:prop._id + "",user_id:user._id + ""});
-    console.log('33333',propInHouse);
+    // console.log('33333',propInHouse);
     if (propInHouse) {
         await dao.updateIncOne(request,'warahouse',{_id:propInHouse._id + ""},{count:prop.count});
     } else {
@@ -178,11 +181,11 @@ exports.harvestProduce = async function(request,reply) {
 }
 exports.updateProduce = async function(request,produce) {  
     var time = new Date().getTime();
-    console.log('111produce',produce);
+    // console.log('111produce',produce);
     if (time >= produce.createTime + produce.time * 1000) {
         produce.status = 2;
         await dao.updateOne(request,'produce',{_id:produce._id  + ""},{status:2});
-        console.log('222produce',produce);
+        // console.log('222produce',produce);
     }
 }
 exports.goodsPropFeeAdd = async function(request,goods) { 
@@ -230,7 +233,7 @@ exports.sendToHome = async function(request,reply) {
         });
         return;
     }
-    console.log('');
+    // console.log('');
     if (user.appLevel.levelName != "黄金店主" && user.appLevel.levelName != "销售经理") {
         reply({
             "message":"只有黄金店主和销售经理才能邮寄商品!",
@@ -285,15 +288,15 @@ exports.sendOrders = async function(request,reply) {
     }
     var startTime = new Date(request.payload.start_time).getTime();
     var endTime = new Date(request.payload.end_time).getTime();
-    console.log('startTime',startTime);
-    console.log('startTime',endTime);
+    // console.log('startTime',startTime);
+    // console.log('startTime',endTime);
     var sort;
     if (request.payload.sort == 1) {
         sort = {pay_time:-1};
     } else {
         sort = {pay_time:1};
     }
-    console.log('api KEY',request.payload.apikey);
+    // console.log('api KEY',request.payload.apikey);
     var orders = await dao.find(request,'sendOrder',{createTime:{$gt:startTime,$lt:endTime}},{createTime:0},sort,request.payload.size,request.payload.page);
     if (orders.length > 0 ) {
         reply({
