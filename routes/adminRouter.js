@@ -3033,7 +3033,73 @@ module.exports = [
     //         }
     //     }
     // },
-    
-  
+      // 分享列表
+    {
+        method:'GET',
+        path:'/admin/tasks/{page}/{size}',
+        handler:adminService.tasks,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '奖项列表',
+            notes: '奖项列表Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    page:Joi.number().required().description("页数"),
+                    size:Joi.number().required().description('条数')
+                }
+            }
+        }
+    },
+
+     // 添加任务
+     {
+        method:'POST',
+        path:'/admin/taskSetting',
+        handler:adminService.addTask,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope:[ 'ADMIN', "SYSTEM_SET_EDIT"]
+            },
+            description: '添加掉落组',
+            notes: '添加掉落组Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    type:Joi.number().description('类型'),
+                    title:Joi.string().description('任务标题'),
+                    tip:Joi.string().description('任务描述'),
+                    typeId:Joi.string().description('任务类型ID'),
+                    extId:Joi.number().description('关联ID'),
+                    // repeat:Joi.number().description('是否可以重复'),
+                    condition:Joi.number().description("接受条件"),
+                    conClass:Joi.number().description("接受条件等级"),
+                    beforeId:Joi.number().description("前置任务ID"),
+                    timeLimit:Joi.number().description("是否限时"),
+                    limitTime:Joi.number().description("任务时间"),
+                    endClass:Joi.number().description("结束条件等级"),
+                    endCount:Joi.number().description("结束条件次数"),
+                    goTo:Joi.string().description('任务触发'),
+                    rewardGold:Joi.number().description("任务奖励金币"),
+                    rewardExperience:Joi.number().default(-1).description("任务奖励经验"),
+                    rewardHb:Joi.number().default(-1).description("任务奖励红包"),
+                    rewardTl:Joi.number().default(-1).description("任务奖励体力"),
+                    rewardEss:Joi.number().default(-1).description("任务奖励植物精华"),
+                    rewardDimond:Joi.number().default(-1).description("任务奖励植物钻石"),
+                    rewardDrop:Joi.number().default(-1).description("任务奖励植掉落组")
+                }
+            }
+        }
+    },
 
 ]

@@ -1791,8 +1791,104 @@ exports.propDetail = async function(request,reply){
     reply({"message":"查询成功","statusCode":107,"status":true,"resource":prop}); 
 
 }
+exports.tasks = async function(request,reply) { 
+    var where = {};
+    var withdrawalList = await dao.find(request,'taskSetting',where,{},{createTime:-1},request.params.size,request.params.page);
+    var sum = await dao.findCount(request,'taskSetting',{});
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":withdrawalList,"sum":sum});
+}
 
+//道具详情
+exports.addTask = async function(request,reply){  
+    var task = request.payload;
+    
+    // 这几种任务需要任务次数大于0
+    if (task.typeId == "plant" || task.typeId == "feed" || task.typeId == "harvestPlant" || task.typeId == "harvestFarm" || task.typeId == "share") {
+        if (task.endCount <= 0) {
+            reply({"message":"请填写正确的任务次数","statusCode":108,"status":false}); 
+            return;
+        }
+        task.steps = task.endCount;
+    } else {
+        task.steps = 1;
+    }
 
+    // 植物的种植和收获要填写存在的植物
+    if (task.typeId == "plant" ||  task.typeId == "harvestPlant") {
+        var seed = await dao.findOne(request,'plant',{id:task.extId});
+        if (!seed) {
+            reply({"message":"植物种子不存在，请填写正确的关联种子id！","statusCode":108,"status":false}); 
+            return;
+        }
+    }
+     // 动物的种植和收获要填写存在的动物
+    if (task.typeId == "feed" ||  task.typeId == "harvestFarm") {
+        var seed = await dao.findOne(request,'plant',{id:task.extId});
+        if (!seed) {
+            reply({"message":"动物不存在，请填写正确的关联动物id！","statusCode":108,"status":false}); 
+            return;
+        }
+    }
+
+    // 结束条件为等级的任务需要结束等级大于0
+    if (task.typeId == "userUp" || task.typeId == "petUp") {
+        if (task.endClass <= 0) {
+            reply({"message":"请填写正确的结束等级！","statusCode":108,"status":false}); 
+            return;
+        }
+    }
+
+    // 前置条件为等级的，等级必须大于0
+    if (task.condition == 1) {
+        if (task.conClass <= 0) {
+            reply({"message":"请填写正确的等级条件！","statusCode":108,"status":false}); 
+            return;
+        }
+    }
+
+    // 前置条件为主线任务的，前置任务必须存在
+    if (task.condition == 2) {
+        var beforeSetting = await dao.findOne(request,'taskSetting',{id:task.beforeId});
+        if (!beforeSetting) {
+            reply({"message":"前置任务不存在，请填写正确的前置任务id！","statusCode":108,"status":false}); 
+            return;
+        }
+    }
+
+    // 日常任务一定是可重复的
+    if(task.type == 2) {
+        task.repeat = 1;
+    } else {
+        task.repeat = 0;
+    }
+
+    // 签到任务一定是日常任务
+    if (task.typeId == "sign") {
+        if (task.type != 2) {
+            reply({"message":"签到任务属于日常任务，请填写正确的任务类型。","statusCode":108,"status":false}); 
+            return;
+        }
+    }
+
+    if (task.rewardDrop > 0) {
+        var drop = await dao.find(request,'dropGroups',{id:task.rewardDrop});
+        if (drop.length <=0) {
+            reply({"message":"掉落组不存在！","statusCode":108,"status":false}); 
+            return;
+        }
+    }
+
+    var taskSettings = await dao.find(request,'taskSetting',{},{},{id:-1});
+    if (taskSettings.length > 0) {
+        var lastSetting = taskSettings[0];
+        task.id = lastSetting.id + 1;
+    } else {
+        task.id = 1000;
+    }
+
+    await dao.save(request,'taskSetting',task);
+    reply({"message":"添加成功！","statusCode":101,"status":true});
+}
 exports.noteList = async function(request,reply) { 
     var where = {};
     if (request.payload.where) {

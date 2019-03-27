@@ -6,6 +6,7 @@ var userService = require("../service/userService");
 const settings = require('../settings');
 var schedule = require('node-schedule');
 const guanjiaService = require('../service/guanjiaService');
+const taskService = require('../service/taskService');
 // 植物标签列表 
 exports.tags = async function (request,reply) {
     var user = request.auth.credentials; 
@@ -235,6 +236,7 @@ exports.cbPlant = async function (request,reply) {
     unlockRecord.plt_id = request.params.id;
     await dao.save(request,'sdCbRecord',unlockRecord);
     plant.unclockStatus = 2;
+    await taskService.updateBuySeedTask(request,user,plant.id);
     reply({
             "message":"合成成功！",
             "statusCode":101,
@@ -424,6 +426,8 @@ exports.plant = async function (request,reply) {
         }); 
     }
     
+    await taskService.updateSeedPlantTask(request,user,plant.id);
+
     reply({
             "message":"种植成功！",
             "statusCode":107,
@@ -561,6 +565,8 @@ exports.autoPlant = async function (request,land_id) {
             await landService.harvestToUser(request,land._id + "");
         }); 
     }
+
+    await taskService.updateSeedPlantTask(request,user,plant.id);
 }
 
 
@@ -790,6 +796,7 @@ exports.harvestToUser = async function(request,land_id){
             landService.combineAutoHarvest(request,gjWorkRecord,harvestCopy);
         }
     }
+    await taskService.updateSeedHarvestTask(request,user,plant.id);
     guanjiaService.autoPlantStart(request);
 }
 // 更新管家工作收益
@@ -1369,7 +1376,8 @@ exports.harvest = async function (request,reply) {
     await dao.updateOne(request,'land',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",animationId:-1,pltId:0});
     // // console.log('4444');
     // landService.autoPlant(request,land._id + "");
-   guanjiaService.autoPlantStart(request);
+    await taskService.updateSeedHarvestTask(request,user,plant.id);
+    guanjiaService.autoPlantStart(request);
     reply({
         "message":"收获成功！!",
         "statusCode":101,
@@ -1402,6 +1410,7 @@ exports.onekeyHarvest = async function (request,reply) {
             if (!harvest) {
                continue;
             }
+            await taskService.updateSeedHarvestTask(request,user,plant.id);
             delete harvest.status;
             delete harvest.user_id;
             if (harvest.props.length > 0) {

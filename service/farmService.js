@@ -5,6 +5,7 @@ var schedule = require('node-schedule');
 const farmService = require("../service/farmService");
 var userService = require("../service/userService");
 const guanjiaService = require('../service/guanjiaService');
+const taskService = require('../service/taskService');
 // 植物标签列表 
 exports.tags = async function (request,reply) {
     var user = request.auth.credentials; 
@@ -227,6 +228,7 @@ exports.cbPlant = async function (request,reply) {
     unlockRecord.plt_id = request.params.id;
     await dao.save(request,'sdCbRecord',unlockRecord);
     plant.unclockStatus = 2;
+    await taskService.updateBuyAnimalTask(request,user,plant.id);
     reply({
             "message":"合成成功！",
             "statusCode":101,
@@ -424,6 +426,7 @@ exports.plant = async function (request,reply) {
             await farmService.harvestToUser(request,land._id + "");
         }); 
     }
+    await taskService.updateSeedFeedTask(request,user,plant.id);
     reply({
             "message":"种植成功！",
             "statusCode":107,
@@ -560,6 +563,7 @@ exports.autoPlant = async function (request,land_id) {
             await farmService.harvestToUser(request,land._id + "");
         }); 
     }
+    await taskService.updateSeedFeedTask(request,user,plant.id);
 }
 
 exports.harvestPreview = async function (request,reply) { 
@@ -878,6 +882,7 @@ exports.harvest = async function (request,reply) {
     }
       // 更新土地
     await dao.updateOne(request,'farm',{_id:land._id + ""},{status:1,free:1,plantTime:0,harvestTime:0,grow_id:"",plt_id:"",pltId:0,animationId:-1});
+    await taskService.updateAnimalHarvestTask(request,user,plant.id);
     reply({
         "message":"收获成功！!",
         "statusCode":101,
@@ -995,6 +1000,7 @@ exports.harvestToUser = async function(request,land_id){
         }
     }
     console.log('harvestToUser2222');
+    await taskService.updateAnimalHarvestTask(request,user,plant.id);
     guanjiaService.autoAnimalStart(request);
 }
 
@@ -1057,6 +1063,7 @@ exports.onekeyHarvest = async function (request,reply) {
                 
                 continue ;
             }
+            await taskService.updateAnimalHarvestTask(request,user,plant.id);
             delete harvest.status;
             delete harvest.user_id;
             if (harvest.props.length > 0) {

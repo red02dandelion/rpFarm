@@ -16,6 +16,7 @@ const catchSlaveService = require('../service/catchSlaveService');
 var hosts = settings.host+":"+settings.hostPort;
 const grouthService = require("../service/grouthService");
 const functionService = require('../service/functionService');
+const taskService = require('../service/taskService');
 //  
 exports.saveTest = async function(request,reply) { 
     for (var index = 1;index < 10;index ++){
@@ -195,6 +196,8 @@ exports.userLogin = async function(request,reply){
     // await farmService.updateSharelands(request);
     await userService.updateOffLineTime(request);
     await userService.updateTl(request);
+    // await taskService.updateUserClassTask(request,user);
+    // await taskService.updateShareTask(request,user);
     user.nextExe = await nextExe(request,user);
     var growSetting = await dao.findOne(request,'settingUserGrow',{class:user.class});
     if (growSetting) {
@@ -246,6 +249,7 @@ exports.userinfo = async function(request,reply){
     // delete user.hmac_password;
     await userService.updateOffLineTime(request);
     await userService.updateTl(request);
+    // await taskService.updateuser
     user.nextExe = await nextExe(request,user);
     var growSetting = await dao.findOne(request,'settingUserGrow',{class:user.class});
     if (growSetting) {
@@ -1955,6 +1959,7 @@ exports.upgrade = async function(request,reply){
         // console.log('datas',[beforeData,afterData]);
         // 添加dw 
         await functionService.checkTips(request);
+        await taskService.updateUserClassTask(request,user);
         reply({"message":"升级成功！","statusCode":101,"status":true,resource:[beforeData,afterData]});
     } else {
         reply({"message":"经验还不够升级！","statusCode":102,"status":false});
