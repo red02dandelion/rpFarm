@@ -1889,6 +1889,28 @@ exports.addTask = async function(request,reply){
     await dao.save(request,'taskSetting',task);
     reply({"message":"添加成功！","statusCode":101,"status":true});
 }
+
+exports.putTask = async function(request,reply) { 
+    var plant = await dao.findById(request,'taskSetting',request.params.id);
+    if (plant == null) {
+        reply({"message":"无此记录！","statusCode":102,"status":true});
+        return ;
+    }
+    await dao.updateOne(request,'taskSetting',{_id:request.params.id},request.payload);
+    reply({"message":"更新成功","statusCode":101,"status":true,"resource":plant});
+}
+
+exports.delTask = async function(request,reply) { 
+    var prop = await dao.findById(request,'taskSetting',request.params.id);
+    if (!prop) {
+        reply({"message":"数据不存在！","statusCode":102,"status":false});
+        return;
+    }
+    await dao.del(request,'taskSetting',{_id:request.params.id + ""});
+    reply({"message":"删除成功！","statusCode":101,"status":true});
+
+}
+
 exports.noteList = async function(request,reply) { 
     var where = {};
     if (request.payload.where) {

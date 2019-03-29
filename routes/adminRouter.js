@@ -3081,6 +3081,7 @@ module.exports = [
                     tip:Joi.string().description('任务描述'),
                     typeId:Joi.string().description('任务类型ID'),
                     extId:Joi.number().description('关联ID'),
+                    autoReceive:Joi.number().description('是否自动领取'),
                     // repeat:Joi.number().description('是否可以重复'),
                     condition:Joi.number().description("接受条件"),
                     conClass:Joi.number().description("接受条件等级"),
@@ -3097,6 +3098,69 @@ module.exports = [
                     rewardEss:Joi.number().default(-1).description("任务奖励植物精华"),
                     rewardDimond:Joi.number().default(-1).description("任务奖励植物钻石"),
                     rewardDrop:Joi.number().default(-1).description("任务奖励植掉落组")
+                }
+            }
+        }
+    },
+
+    // 编辑任务
+     {
+        method:'PUT',
+        path:'/admin/taskSetting/{id}',
+        handler:adminService.putTask,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope:[ 'ADMIN', "SYSTEM_SET_EDIT"]
+            },
+            description: '添加掉落组',
+            notes: '添加掉落组Api',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                payload:{
+                    title:Joi.string().description('任务标题'),
+                    tip:Joi.string().description('任务描述'),
+                    autoReceive:Joi.number().description('是否自动领取'),
+                    // repeat:Joi.number().description('是否可以重复'),
+                    timeLimit:Joi.number().description("是否限时"),
+                    limitTime:Joi.number().description("任务时间"),
+                    goTo:Joi.string().description('任务触发'),
+                    rewardGold:Joi.number().description("任务奖励金币"),
+                    rewardExperience:Joi.number().default(-1).description("任务奖励经验"),
+                    rewardHb:Joi.number().default(-1).description("任务奖励红包"),
+                    rewardTl:Joi.number().default(-1).description("任务奖励体力"),
+                    rewardEss:Joi.number().default(-1).description("任务奖励植物精华"),
+                    rewardDimond:Joi.number().default(-1).description("任务奖励植物钻石"),
+                    rewardDrop:Joi.number().default(-1).description("任务奖励植掉落组")
+                },
+                params:{
+                    id:Joi.string().required().description("id"),
+                }
+            }
+        }
+    },
+    // 删除任务
+    {
+        method:'DELETE',
+        path:'/admin/taskSetting/{id}',
+        handler:adminService.delTask,
+        config:{
+             auth: {
+                strategy: 'bearer',
+                scope: 'ADMIN'
+            },
+            description: '删除任务',
+            notes: '删除任务API',
+            tags: ['api'],
+            validate: {
+                headers: Joi.object({
+                    'authorization': Joi.string().required().description('需要加token请求头')
+                }).unknown(),
+                params:{
+                    id:Joi.string().required().description("id"),
                 }
             }
         }

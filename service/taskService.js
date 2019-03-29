@@ -12,44 +12,81 @@ exports.task = async function(request,reply){
      await taskService.updateSignTasks(request,user);
       
      await taskService.updateUserClassTask(request,user);
+
+     await taskService.updateYesterdayTasks(request,user);
       
      var task;
     
      var taskRecords = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:1},{},{startTime:1});
-      
-       
+      console.log("taskRecords",taskRecords);
      if (taskRecords.length > 0) {
         
         task = taskRecords[0];
-        task.reward = await taskService.taskArard(request,task);
-        reply({"message":"查询成功","statusCode":107,"status":true,"resource":task});
-        return;
-     } else {
-        var taskingRecord = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:0},{},{startTime:1});
-        if (taskingRecord.length > 0) {
-            task = taskingRecord[0];
+        console.log("task",task);
+        if (task.type == 2) {
+            console.log("22222");
+            const dayString = format1("yyyy/M/d",new Date());
+            console.log("task.dayString",task.dayString);
+            console.log("dayString",dayString);
+            if (task.dayString == dayString) {
+               
+                 
+                task.reward = await taskService.taskArard(request,task);
+                reply({"message":"查询成功","statusCode":107,"status":true,"resource":task});
+                return;
+            } 
+        } else {
             task.reward = await taskService.taskArard(request,task);
             reply({"message":"查询成功","statusCode":107,"status":true,"resource":task});
             return;
         }
-        var compeletedTasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:2});
-        var taskSettings = await dao.find(request,'taskSetting',{});
-        // console.log('compeletedTasks',compeletedTasks);
-        // console.log('taskSettings',taskSettings);
-         var restTasks = await taskService.removeTasksInOther(taskSettings,compeletedTasks);
-        //  console.log('restTasks',restTasks);
-         if (restTasks.length > 0) {
-             task = restTasks[0];
+    } 
+     console.log("333333");
+    var taskingRecord = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:0},{},{startTime:1});
+     console.log("taskingRecord",taskingRecord);
+    if (taskingRecord.length > 0) {
+        task = taskingRecord[0];
+        if (task.type == 2) {
+             console.log("44444");
+            const dayString = format1("yyyy/M/d",new Date());
+            console.log("task.dayString",task.dayString);
+            console.log("dayString",dayString);
+            if (task.dayString == dayString) {
+                console.log("5555");
+                task.reward = await taskService.taskArard(request,task);
+                reply({"message":"查询成功","statusCode":107,"status":true,"resource":task});
+                return;
+            }
+        } else {
             task.reward = await taskService.taskArard(request,task);
             reply({"message":"查询成功","statusCode":107,"status":true,"resource":task});
             return;
-         } else {
-            reply({"message":"查询成功","statusCode":107,"status":true,"resource":null});
-            return;
-         }
-       
-     }
-     
+        }
+    }
+    var compeletedTasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:2});
+    var taskSettings = await dao.find(request,'taskSetting',{});
+    // console.log('compeletedTasks',compeletedTasks);
+    // console.log('taskSettings',taskSettings);
+    var restTasks = await taskService.removeTasksInOther(taskSettings,compeletedTasks);
+//  console.log('restTasks',restTasks);
+    if (restTasks.length > 0) {
+        task = restTasks[0];
+    task.reward = await taskService.taskArard(request,task);
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":task});
+    return;
+    } else {
+    reply({"message":"查询成功","statusCode":107,"status":true,"resource":null});
+    return;
+    }  
+}
+exports.updateYesterdayTasks = async function(request,user){
+    const dayString = format1("yyyy/M/d",new Date());
+    var dayTasks = await dao.find(request,'taskRecord',{user_id:user._id + "",dayString:{$ne:dayString},type:2});
+    // cons
+    for (var index in dayTasks) {
+        var dayTask = dayTasks[index];
+        await dao.del(request,'taskRecord',{_id:dayTask._id + ""});
+    }
 }
 exports.removeTasksInOther = async function(tasks,taskArr){  
     // console.log('taskArr',taskArr);
@@ -78,8 +115,10 @@ exports.growTasks = async function(request,reply){
    var tasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:1,type:1},{},{startTime:1});
    var inTasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:0,type:1},{},{startTime:1});
    tasks = tasks.concat(inTasks);
+   var compeletedTasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:2,type:1},{},{startTime:1});
+    tasks = tasks.concat(compeletedTasks);
    var taskSettings = await dao.find(request,'taskSetting',{type:1},{},{id:1});
-   await taskService.concantNoRepeatTask(tasks,taskSettings);
+   tasks = await taskService.concantNoRepeatTask(tasks,taskSettings);
    for (var index in tasks) {
        var task = tasks[index];
        task.reward = await taskService.taskArard(request,task);
@@ -93,13 +132,18 @@ exports.dayTask = async function(request,reply){
 
     const dayString = format1("yyyy/M/d",new Date());
     var tasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:1,type:2,dayString:dayString},{},{startTime:1});   
+    console.log('tasks',tasks);
     var inTasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:0,type:2,dayString:dayString},{},{startTime:1});
     tasks = tasks.concat(inTasks);
-    var taskSettings = await dao.find(request,'taskSetting',{type:2},{},{id:1});
+    console.log('1111tasks',tasks);
+   
     // var noInTask = [];
-    // console.log('taskSettings',taskSettings);
-    await taskService.concantNoRepeatTask(tasks,taskSettings);
-    // console.log('22222222');
+    console.log('taskSettings',taskSettings);
+    var compeletedTasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:2,type:2,dayString:dayString},{},{startTime:1});
+    tasks = tasks.concat(compeletedTasks);
+    var taskSettings = await dao.find(request,'taskSetting',{type:2},{},{id:1});
+    tasks = await taskService.concantNoRepeatTask(tasks,taskSettings);
+    console.log('22222tasks',tasks);
     for (var index in tasks) {
        var task = tasks[index];
        task.reward = await taskService.taskArard(request,task);
@@ -114,9 +158,11 @@ exports.achiveTask = async function(request,reply){
     var tasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:1,type:3},{},{startTime:1});
     var inTasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:0,type:3},{},{startTime:1});
     tasks = tasks.concat(inTasks);
-    var taskSettings = await dao.find(request,'taskSetting',{type:1},{},{id:1});
+    var compeletedTasks = await dao.find(request,'taskRecord',{user_id:user._id + "",compeleted:2,type:3},{},{startTime:1});
+    tasks = tasks.concat(compeletedTasks);
+    var taskSettings = await dao.find(request,'taskSetting',{type:3},{},{id:1});
 //    var noInTask = [];
-    await taskService.concantNoRepeatTask(tasks,taskSettings);
+    tasks = await taskService.concantNoRepeatTask(tasks,taskSettings);
     for (var index in tasks) {
        var task = tasks[index];
        task.reward = await taskService.taskArard(request,task);
@@ -166,10 +212,14 @@ exports.taskArard = async function(request,taskSetting){
    return data;
 }
 exports.concantNoRepeatTask = async function(tasks,taskArr){ 
+    console.log('tasks',tasks);
+    console.log('taskArr',taskArr);
     if (taskArr.length <= 0 ) {
         return tasks;
     }
     if (tasks.length <= 0) {
+        // tasks = taskArr;
+        // console.log('tasks',tasks);
         return taskArr;
     }
     for (var index in taskArr) {
@@ -185,12 +235,22 @@ exports.concantNoRepeatTask = async function(tasks,taskArr){
             tasks.push(newTask);
         }
     }
+    return tasks;
 }
 exports.receiveTask = async function(request,reply){  
     var user = request.auth.credentials;
     var currentDateTime = new Date().getTime();
-    var myTask = await dao.findOne(request,'taskRecord',{task_id:request.payload.id,user_id:user._id + ""});
+    var taskSetting = await dao.findById(request,'taskSetting',request.payload.id);
+    var myTask;
+    if (taskSetting.type == 2) {
+        const dayString = format1("yyyy/M/d",new Date());
+        myTask = await dao.findOne(request,'taskRecord',{task_id:request.payload.id,user_id:user._id + "",dayString:dayString});
+    } else {
+        myTask = await dao.findOne(request,'taskRecord',{task_id:request.payload.id,user_id:user._id + ""});
+    }
+     
     if (myTask) {
+        console.log('myTask',myTask);
         reply({"message":"任务已经领取过！","statusCode":102,"status":false});
         return;
     }
@@ -330,11 +390,17 @@ exports.isCanReceive = async function(request,user,taskSetting){
 }
 exports.autoReceiveTask = async function(request,user){ 
     var autoTaskSettings = await dao.find(request,'taskSetting',{autoReceive:1});
-   
+    const dayString =  format1("yyyy/M/d",new Date());
     if (autoTaskSettings.length > 0) {
         for (var index in autoTaskSettings) {
             var autoTaskSetting = autoTaskSettings[index];
-            var myTask = await dao.findOne(request,'taskRecord',{user_id:user._id + "",id:autoTaskSetting.id});
+            var myTask;
+            if (autoTaskSetting.type == 2) {
+                myTask  = await dao.findOne(request,'taskRecord',{user_id:user._id + "",id:autoTaskSetting.id,dayString:dayString });
+            } else {
+                myTask  = await dao.findOne(request,'taskRecord',{user_id:user._id + "",id:autoTaskSetting.id});
+            }
+            
             if (!myTask) {
                 // 如果有前置任务，前置任务没完成不可以接该任务
                 if (autoTaskSetting.beforeId != -1) {
@@ -353,7 +419,7 @@ exports.autoReceiveTask = async function(request,user){
                 delete autoTaskSetting._id;
                 if (autoTaskSetting.type == 2) {
                     
-                    const dayString =  format1("yyyy/M/d",new Date());
+                   
                     autoTaskSetting.dayString = dayString;
                 }
                 await dao.save(request,'taskRecord',autoTaskSetting);
